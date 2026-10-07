@@ -9,11 +9,16 @@ export type StaffMember = { id: string; name: string; email: string; role: Staff
 type StaffAccount = StaffMember & { passwordHash: string }
 
 // DEMO: en la fase 2 se reemplaza por la tabla `users` (Better Auth) filtrada por clínica.
-// Contraseña de demostración: "medico2026" (hash scrypt `salt:hash`).
+// Contraseñas de demostración (hash scrypt `salt:hash`): médico "medico2026", enfermería "enfermeria2026".
 const staff: StaffAccount[] = [
   {
-    id: 'u-medico', name: 'Dr. Francisco Ramos', email: `francisco.ramos@${platform.staffDomain}`, role: 'medico', license: 'Céd. prof. 1234567 · Esp. 7654321',
+    id: 'u-medico', name: 'Dr. Francisco', email: `francisco@${platform.staffDomain}`, role: 'medico', license: 'Céd. prof. 1234567 · Esp. 7654321',
     passwordHash: '8b7b8249c5676811462000c91ac3c7b8:e856b53be3343fa134ca587b6f6cd41d221a47c4c13ea7d069cf435da63fa3f3',
+  },
+  // Enfermería de prueba. Contraseña: "enfermeria2026". Cambiar el nombre por el de la enfermera real y su cédula.
+  {
+    id: 'u-enfermeria', name: 'Enfermería UP Chiapas', email: `enfermeria@${platform.staffDomain}`, role: 'enfermeria',
+    passwordHash: '6f227b6fbba9df0c465930a79044ce3b:e7247fc11e1f2614d1bb1efd5e99cc54bf015438c14393853298da4042e8b9e8',
   },
 ]
 

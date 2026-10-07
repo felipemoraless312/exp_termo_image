@@ -19,12 +19,13 @@ import { ageFrom, formatDateTime, hoursSince } from '@/lib/format'
 export const metadata = { title: 'Nueva nota' }
 
 export default async function NewNotePage({ params, searchParams }: PageProps<'/sistema/pacientes/[id]/notas/nueva'>) {
-  const [{ id }, query, user] = await Promise.all([params, searchParams, requireStaff('record.write')])
+  const [{ id }, query, user] = await Promise.all([params, searchParams, requireStaff('record')])
   const chart = await getPatientChart(id)
   if (!chart) notFound()
   const { patient, record } = chart
 
   const allowed = noteTypes.filter((type) => canAccess(user.role, noteTemplates[type].permission))
+  if (!allowed.length) notFound()
   const fallback: NoteType = allowed.includes('evolucion') ? (record.notes.length ? 'evolucion' : 'historia-clinica') : allowed[0]
   const type = allowed.find((t) => t === query.tipo) ?? fallback
   const template = noteTemplates[type]

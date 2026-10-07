@@ -41,7 +41,7 @@ export const getStaffSession = cache(async (): Promise<StaffMember | null> => {
 /** Exige sesión del médico y, opcionalmente, permiso sobre un área. */
 export async function requireStaff(area?: StaffArea): Promise<StaffMember> {
   const user = await getStaffSession()
-  if (!user) redirect('/sistema/login')
+  if (!user) redirect('/?acceso=medico')
   if (area && !canAccess(user.role, area)) redirect('/sistema')
   return user
 }
@@ -75,6 +75,6 @@ export const getPortalViewer = cache(async (): Promise<PortalViewer | null> => {
 
 export async function requirePortalViewer(): Promise<PortalViewer> {
   const viewer = await getPortalViewer()
-  if (!viewer) redirect('/portal/login')
+  if (!viewer) redirect('/')
   return viewer
 }

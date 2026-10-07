@@ -9,16 +9,10 @@ import './globals.css'
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter', display: 'swap' })
 
 export const metadata: Metadata = {
-  title: { default: platform.name, template: `%s · ${platform.name}` },
-  description: platform.tagline,
-  icons: {
-    icon: [
-      { url: '/icon-light-32x32.png', media: '(prefers-color-scheme: light)' },
-      { url: '/icon-dark-32x32.png', media: '(prefers-color-scheme: dark)' },
-      { url: '/icon.svg', type: 'image/svg+xml' },
-    ],
-    apple: '/apple-icon.png',
-  },
+  title: { default: `${platform.name} · ${platform.tagline}`, template: `%s · ${platform.name}` },
+  description: platform.description,
+  icons: { icon: platform.logo, apple: platform.logo },
+  robots: { index: false, follow: false },
 }
 
 export const viewport: Viewport = {

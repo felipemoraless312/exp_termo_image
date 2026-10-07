@@ -8,7 +8,7 @@ export function stampFor(by: string, at = new Date()): Stamp {
   return { at: at.toISOString(), by, location: site.name }
 }
 
-/** "7 oct 2026, 10:32 · Dr. Francisco Ramos · Universidad Politécnica de Chiapas" */
+/** "7 oct 2026, 10:32 · Dr. Francisco · Universidad Politécnica de Chiapas" */
 export function formatStamp(stamp?: Stamp, verb = 'Registró'): string | undefined {
   return stamp ? `${verb} ${stamp.by} · ${formatDateTime(stamp.at)} · ${stamp.location}` : undefined
 }

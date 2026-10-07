@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation'
 import { BadgeCheck, ChevronLeft } from 'lucide-react'
 
 import { Card } from '@/components/ui/card'
+import { PlatformLogo } from '@/components/brand/logo'
 import { clinic } from '@/config/clinic'
 import { canAccess } from '@/modules/auth/permissions'
 import { requireStaff } from '@/modules/auth/session'
@@ -40,8 +41,10 @@ export default async function NotePage({ params }: PageProps<'/sistema/pacientes
       <Card className="p-6 sm:p-10 print:p-0 print:shadow-none">
         <header className="flex flex-wrap items-start justify-between gap-4 border-b border-separator pb-5">
           <div>
-            <p className="text-[13px] font-semibold">{clinic.name}</p>
-            <p className="text-[12px] text-muted-foreground">{clinic.address.lines.join(', ')}{clinic.sanitaryNotice && ` · Aviso sanitario ${clinic.sanitaryNotice}`}</p>
+            <PlatformLogo />
+            {(clinic.address.lines.length > 0 || clinic.sanitaryNotice) && (
+              <p className="mt-2 text-[12px] text-muted-foreground">{[clinic.address.lines.join(', '), clinic.sanitaryNotice && `Aviso sanitario ${clinic.sanitaryNotice}`].filter(Boolean).join(' · ')}</p>
+            )}
           </div>
           <div className="text-right">
             <h1 className="text-title-3">{template.label}</h1>

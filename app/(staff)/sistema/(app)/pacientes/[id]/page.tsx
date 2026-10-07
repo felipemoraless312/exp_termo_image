@@ -92,7 +92,7 @@ export default async function PatientChartPage({ params, searchParams }: PagePro
           </p>
         </div>
         <div className="no-print flex flex-wrap gap-2">
-          {can('record.write') && <VitalsDialog patient={patient} />}
+          {can('vitals') && <VitalsDialog patient={patient} />}
           {(can('notes.medical') || can('notes.nursing')) && (
             <Link href={`/sistema/pacientes/${patient.id}/notas/nueva`} className={buttonVariants({ size: 'sm' })}><FilePlus2 /> Nueva nota</Link>
           )}
@@ -138,7 +138,7 @@ export default async function PatientChartPage({ params, searchParams }: PagePro
         )}
         {current === 'signos' && (
           <>
-            {can('record.write') && <div className="mb-4"><VitalsDialog patient={patient} triggerStyle={{ variant: 'primary', size: 'sm' }} /></div>}
+            {can('vitals') && <div className="mb-4"><VitalsDialog patient={patient} triggerStyle={{ variant: 'primary', size: 'sm' }} /></div>}
             <div className="space-y-4">
               <VitalsCard vitals={latest} />
               <SectionTitle>Historial</SectionTitle>

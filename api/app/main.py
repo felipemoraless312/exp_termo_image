@@ -1,5 +1,5 @@
 """
-API del expediente clínico (Medora).
+API del expediente clínico (UP Chiapas).
 
 Solo escucha en 127.0.0.1: la consume el servidor de Next.js, nunca el navegador.
 Cada petición debe traer la cabecera `X-API-Key` con la clave de `.env.local` (MEDORA_API_KEY).
@@ -32,7 +32,7 @@ async def lifespan(_: FastAPI):
     yield
 
 
-app = FastAPI(title="Medora · API del expediente clínico", version="1.0.0", dependencies=[Depends(require_key)], lifespan=lifespan)
+app = FastAPI(title="UP Chiapas · API del expediente clínico", version="1.0.0", dependencies=[Depends(require_key)], lifespan=lifespan)
 app.include_router(expedientes.router)
 app.include_router(oncologia.router)
 

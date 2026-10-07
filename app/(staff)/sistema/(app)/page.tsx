@@ -11,6 +11,7 @@ import { List, ListItem } from '@/components/ui/list'
 import { PageHeader } from '@/components/ui/page-header'
 import { firstName, formatDate, formatDateTime, formatTime, formatWeekday, greeting, todayISO } from '@/lib/format'
 import { requireStaff } from '@/modules/auth/session'
+import { canAccess } from '@/modules/auth/permissions'
 import { listLatestVitals, listPatients, listPendingStudies, listRecentActivity, listRecentNotes } from '@/modules/patients/data'
 import { getCampaignAgenda, listCampaigns, pickCurrentCampaign } from '@/modules/oncology/data'
 import { appointmentStatusInfo, riskLevelInfo, type CampaignAgenda } from '@/modules/oncology/types'
@@ -25,7 +26,7 @@ const linkClass = 'text-[13px] font-medium text-accent-foreground hover:underlin
 /** Resumen del médico: campaña en curso, alertas clínicas, actividad reciente, notas y estudios pendientes. */
 export default async function DashboardPage() {
   const user = await requireStaff('dashboard')
-  const [patients, vitals, notes, studies, activity, campaigns] = await Promise.all([listPatients(), listLatestVitals(), listRecentNotes(6), listPendingStudies(), listRecentActivity(8), listCampaigns()])
+  const [patients, vitals, notes, studies, activity, campaigns] = await Promise.all([listPatients(), listLatestVitals(), listRecentNotes(6), listPendingStudies(), canAccess(user.role, 'audit') ? listRecentActivity(8) : Promise.resolve([]), listCampaigns()])
   const current = pickCurrentCampaign(campaigns)
   const agenda = current ? await getCampaignAgenda(current.id) : undefined
 
@@ -48,7 +49,7 @@ export default async function DashboardPage() {
       <PageHeader
         eyebrow={formatWeekday()}
         title={`${greeting()}, ${firstName(user.name)}`}
-        actions={<Link href="/sistema/pacientes/nuevo" className={buttonVariants()}><UserPlus /> Nuevo paciente</Link>}
+        actions={canAccess(user.role, 'patients.write') && <Link href="/sistema/pacientes/nuevo" className={buttonVariants()}><UserPlus /> Nuevo paciente</Link>}
       />
       {agenda && <CampaignPanel agenda={agenda} />}
 
@@ -73,7 +74,7 @@ export default async function DashboardPage() {
         </section>
       )}
 
-      <Card className="mt-4">
+      {canAccess(user.role, 'audit') && <Card className="mt-4">
         <CardHeader title="Actividad reciente" description={`Cada registro guarda fecha, hora y quién lo capturó · ${site.name}`} />
         <div className="mt-2 pb-2">
           {activity.length ? (
@@ -84,7 +85,7 @@ export default async function DashboardPage() {
             </List>
           ) : <p className="px-6 py-5 text-[14px] text-muted-foreground">Sin actividad registrada.</p>}
         </div>
-      </Card>
+      </Card>}
 
       <div className="mt-4 grid gap-4 lg:grid-cols-2">
         <Card>

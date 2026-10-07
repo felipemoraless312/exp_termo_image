@@ -20,10 +20,11 @@ export const auditActionLabels: Record<AuditAction, string> = {
 }
 
 /** Quién realiza la acción: el médico, el paciente, un contacto autorizado o un proceso del sistema (p. ej. importación). */
-export type AuditActor = { id: string; name: string; role: 'medico' | 'paciente' | 'contacto' | 'sistema' }
+export type AuditActor = { id: string; name: string; role: 'medico' | 'enfermeria' | 'paciente' | 'contacto' | 'sistema' }
 
 export const auditRoleLabels: Record<AuditActor['role'], string> = {
   medico: 'Médico',
+  enfermeria: 'Enfermería',
   paciente: 'Paciente',
   contacto: 'Contacto autorizado',
   sistema: 'Sistema',

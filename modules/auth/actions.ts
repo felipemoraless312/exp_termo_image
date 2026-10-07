@@ -26,7 +26,7 @@ export async function signInStaff(_: FormState, formData: FormData): Promise<For
 
 export async function signOutStaff() {
   ;(await cookies()).delete(STAFF_COOKIE)
-  redirect('/sistema/login')
+  redirect('/?acceso=medico')
 }
 
 /** Acceso del paciente con número de expediente y fecha de nacimiento (formato AAAA-MM-DD). */
@@ -69,5 +69,5 @@ export async function signOutPortal() {
   const jar = await cookies()
   jar.delete(PATIENT_COOKIE)
   jar.delete(CONTACT_COOKIE)
-  redirect('/portal/login')
+  redirect('/')
 }

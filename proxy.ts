@@ -7,8 +7,8 @@ import { NextResponse, type NextRequest } from 'next/server'
  * El portal lo usan el paciente (`md_patient`) y sus contactos autorizados (`md_contact`).
  */
 const surfaces = [
-  { prefix: '/sistema', cookies: ['md_staff'], login: '/sistema/login', open: ['/sistema/login'] },
-  { prefix: '/portal', cookies: ['md_patient', 'md_contact'], login: '/portal/login', open: ['/portal/login'] },
+  { prefix: '/sistema', cookies: ['md_staff'], login: '/?acceso=medico', open: ['/sistema/login'] },
+  { prefix: '/portal', cookies: ['md_patient', 'md_contact'], login: '/', open: ['/portal/login'] },
 ]
 
 export function proxy(request: NextRequest) {

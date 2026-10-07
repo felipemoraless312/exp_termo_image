@@ -1,4 +1,4 @@
-# Medora · Expediente clínico electrónico
+# UP Chiapas · Expediente clínico electrónico
 
 Expediente clínico electrónico (NOM-004-SSA3-2012 / NOM-024-SSA3-2012) con apartado de oncología para el tamizaje de cáncer de mama y campañas de termografía mamaria.
 
@@ -74,7 +74,7 @@ Debe mostrar `Uvicorn running on http://127.0.0.1:8000`. La base de datos se cre
 npm run dev
 ```
 
-Abre [http://localhost:3000/sistema](http://localhost:3000/sistema) para el sistema del médico o [http://localhost:3000/portal](http://localhost:3000/portal) para el portal del paciente.
+Abre [http://localhost:3000](http://localhost:3000): es el único inicio de sesión, con pestañas para **Paciente** (o contacto autorizado) y **Personal médico**. Los accesos de prueba están en `accesos-portal-pruebas.txt`.
 
 > **Orden:** conviene arrancar primero el backend. Si el frontend no encuentra la API, las páginas del sistema mostrarán el aviso *“No hay conexión con la API del expediente”*; basta con iniciar `npm run api` y recargar.
 
@@ -149,5 +149,5 @@ Contiene datos personales y de salud: no la subas al repositorio (ya está en `.
 
 ## 9. Seguridad antes de usarlo con más personas
 
-- El inicio de sesión del personal es todavía el de demostración (`modules/staff/data.ts`): **cambia la contraseña** y crea una cuenta por persona para que la bitácora registre quién hizo cada cosa.
+- Las cuentas del personal (`modules/staff/data.ts`) son de demostración: **médico** y **enfermería** (signos vitales, llegada a la agenda y notas de enfermería). **Cambia las contraseñas** y crea una cuenta por persona para que la bitácora registre quién hizo cada cosa.
 - Los contactos autorizados del portal aún se guardan en memoria y se pierden al reiniciar el frontend.

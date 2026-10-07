@@ -53,7 +53,7 @@ class ChartSave(BaseModel):
 class Actor(BaseModel):
     id: str
     name: str
-    role: Literal["medico", "paciente", "contacto", "sistema"]
+    role: Literal["medico", "enfermeria", "paciente", "contacto", "sistema"]
 
 
 class AuditIn(BaseModel):

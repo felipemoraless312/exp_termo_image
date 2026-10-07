@@ -22,6 +22,7 @@ import {
   type AgendaItem, type AppointmentStatus, type Campaign,
 } from '@/modules/oncology/types'
 import { listPatients } from '@/modules/patients/data'
+import { VitalsDialog } from '@/modules/patients/components/chart-forms'
 
 export const metadata = { title: 'Campaña de mama' }
 
@@ -44,6 +45,8 @@ export default async function CampaignPage({ searchParams }: PageProps<'/sistema
   const campaigns = await listCampaigns()
   const selected = campaigns.find((c) => c.id === params.id) ?? pickCurrentCampaign(campaigns)
   const canWrite = canAccess(user.role, 'oncology.write')
+  const canCheckIn = canAccess(user.role, 'campaign.checkin')
+  const canVitals = canAccess(user.role, 'vitals')
 
   if (!selected) {
     return (
@@ -132,7 +135,7 @@ export default async function CampaignPage({ searchParams }: PageProps<'/sistema
             <section key={time} aria-label={`Citas de las ${time}`}>
               <h2 className="mb-2 flex items-center gap-2 px-1 text-[13px] font-semibold text-muted-foreground"><Clock size={14} aria-hidden="true" /> {time} · {group.length}</h2>
               <Card className="divide-y divide-separator py-1">
-                {group.map((item) => <AgendaRow key={item.id} item={item} campaign={agenda.campaign} canWrite={canWrite} isNext={item.id === next?.id} />)}
+                {group.map((item) => <AgendaRow key={item.id} item={item} campaign={agenda.campaign} canWrite={canWrite} canCheckIn={canCheckIn} canVitals={canVitals} isNext={item.id === next?.id} />)}
               </Card>
             </section>
           ))}
@@ -146,7 +149,7 @@ export default async function CampaignPage({ searchParams }: PageProps<'/sistema
   )
 }
 
-function AgendaRow({ item, campaign, canWrite, isNext }: { item: AgendaItem; campaign: Campaign; canWrite: boolean; isNext: boolean }) {
+function AgendaRow({ item, campaign, canWrite, canCheckIn, canVitals, isNext }: { item: AgendaItem; campaign: Campaign; canWrite: boolean; canCheckIn: boolean; canVitals: boolean; isNext: boolean }) {
   const age = ageFrom(item.patient.birthDate, new Date(`${campaign.date}T12:00:00`))
   const flags = screeningFlags(item.screening, age)
   const risk = riskLevelInfo[item.assessment.level]
@@ -178,11 +181,12 @@ function AgendaRow({ item, campaign, canWrite, isNext }: { item: AgendaItem; cam
           {last && <span className="mt-1.5 flex items-start gap-1.5 text-[12px] leading-5 text-subtle"><History size={13} className="mt-0.5 shrink-0" aria-hidden="true" />{formatLogEntry(last)}</span>}
         </span>
       </Link>
-      {canWrite && (
+      {(canWrite || canCheckIn || canVitals) && (
         <div className="no-print flex shrink-0 flex-wrap items-center gap-2 sm:justify-end">
-          <AppointmentActions patientId={item.patient.id} appointment={item} />
-          {item.status === 'presente' && <ThermographyDialog patient={item.patient} campaigns={[campaign]} campaignId={campaign.id} />}
-          {!item.surveyId && (item.status === 'presente' || item.status === 'atendida') && (
+          {canCheckIn && <AppointmentActions patientId={item.patient.id} appointment={item} />}
+          {canVitals && item.status === 'presente' && <VitalsDialog patient={item.patient} />}
+          {canWrite && item.status === 'presente' && <ThermographyDialog patient={item.patient} campaigns={[campaign]} campaignId={campaign.id} />}
+          {canWrite && !item.surveyId && (item.status === 'presente' || item.status === 'atendida') && (
             <Link href={`/sistema/pacientes/${item.patient.id}/encuesta`} className={buttonVariants({ variant: 'secondary', size: 'sm' })}><ClipboardList /> Encuesta</Link>
           )}
         </div>

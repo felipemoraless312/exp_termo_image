@@ -8,7 +8,7 @@ import { reject, runAction, type FormFields } from '@/lib/server/form'
 import { newId } from '@/lib/server/memory'
 import { todayISO } from '@/lib/format'
 import { audit } from '@/modules/audit/log'
-import { canAccess } from '@/modules/auth/permissions'
+import { canAccess, staffRoleLabels } from '@/modules/auth/permissions'
 import { requireStaff } from '@/modules/auth/session'
 import { parseDiagnosis } from '@/modules/catalogs/cie10'
 import { allergyKinds, allergySeverities, bloodTypes, mriSafety, sexes, studyCategories } from '@/modules/catalogs/clinical'
@@ -284,7 +284,7 @@ export async function updateHistory(_: ActionState, formData: FormData): Promise
 
 export async function recordVitals(_: ActionState, formData: FormData): Promise<ActionState> {
   return runAction(formData, async (form) => {
-    const user = await requireStaff('record.write')
+    const user = await requireStaff('vitals')
     const { patient, record } = await recordOf(form)
     const systolic = form.number('systolic', 'TA sistólica', { min: 40, max: 300 })
     const diastolic = form.number('diastolic', 'TA diastólica', { min: 20, max: 200 })
@@ -339,7 +339,7 @@ export async function createNote(_: ActionState, formData: FormData): Promise<Ac
 
     const createdAt = new Date().toISOString()
     const base = {
-      id: newId('nt'), type, createdAt, author: user.name, authorRole: 'Médico', authorLicense: user.license,
+      id: newId('nt'), type, createdAt, author: user.name, authorRole: staffRoleLabels[user.role], authorLicense: user.license,
       sections, diagnoses, prognosis: template.prognosis ? form.optional('prognosis', 120) : undefined,
       vitalsId: form.bool('linkVitals') ? record.vitals.at(-1)?.id : undefined,
       registered: stampFor(user.name, new Date(createdAt)),

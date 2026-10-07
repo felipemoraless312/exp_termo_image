@@ -45,6 +45,15 @@ export async function listPsychoSurveys(campaignId?: string): Promise<SurveyResp
  * Lo que la paciente (o su contacto autorizado) ve de oncología en el portal: sus citas de campaña y su cuestionario.
  * La valoración de riesgo y los resultados se comunican por el médico, no se muestran aquí.
  */
+/** Encuesta de psico-oncología de la paciente en el portal: si ya la contestó para su campaña vigente. */
+export async function getPortalPsychoSurvey(): Promise<{ survey?: SurveyResponse; campaignName?: string }> {
+  const viewer = await requirePortalViewer()
+  const [chart, surveys] = await Promise.all([repository.findOncologyChart(viewer.patient.id), repository.listPatientSurveys(viewer.patient.id)])
+  const appointment = chart?.appointments.find((a) => a.status !== 'cancelada' && a.status !== 'no-asistio')
+  const survey = surveys.find((s) => s.kind === PSYCHO_SURVEY_KIND && s.campaignId === appointment?.campaign.id)
+  return { survey, campaignName: appointment?.campaign.name }
+}
+
 export async function getPortalCampaigns(): Promise<{ appointments: (OncologyChart['appointments'][number] & { campaign: { location?: string } })[]; screening?: Screening }> {
   const viewer = await requirePortalViewer()
   const [chart, campaigns] = await Promise.all([repository.findOncologyChart(viewer.patient.id), repository.listCampaigns()])

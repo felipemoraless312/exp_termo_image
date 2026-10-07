@@ -1,13 +1,15 @@
 import Link from 'next/link'
-import { ChevronRight, ShieldAlert, ShieldCheck } from 'lucide-react'
+import { ChevronRight, ClipboardList, ShieldAlert, ShieldCheck } from 'lucide-react'
 
 import { Badge } from '@/components/ui/badge'
 import { Card } from '@/components/ui/card'
 import { canSeeFullRecord, getPortalChart } from '@/modules/patients/data'
+import { getPortalPsychoSurvey } from '@/modules/oncology/data'
+import { buttonVariants } from '@/components/ui/button'
 import { firstName, formatDate, greeting } from '@/lib/format'
 
 export default async function PortalHomePage() {
-  const { viewer, patient, record } = await getPortalChart()
+  const [{ viewer, patient, record }, { survey }] = await Promise.all([getPortalChart(), getPortalPsychoSurvey()])
   const isPatient = viewer.kind === 'paciente'
   const full = canSeeFullRecord(viewer)
   const lastNote = record.notes[0]
@@ -35,6 +37,19 @@ export default async function PortalHomePage() {
           </div>
         </dl>
       </div>
+
+      {isPatient && !survey && (
+        <Card className="mt-4 flex flex-col gap-4 p-6 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-start gap-3">
+            <ClipboardList size={22} className="mt-0.5 shrink-0 text-accent-foreground" aria-hidden="true" />
+            <div>
+              <h2 className="font-semibold">Contesta tu encuesta</h2>
+              <p className="mt-1 text-[14px] leading-6 text-muted-foreground">Unas preguntas sobre la prevención del cáncer de mama y de cérvix. Toma unos 10 minutos y nos ayuda mucho.</p>
+            </div>
+          </div>
+          <Link href="/portal/encuesta" className={buttonVariants({ className: 'shrink-0' })}>Contestar</Link>
+        </Card>
+      )}
 
       {full && (
         <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

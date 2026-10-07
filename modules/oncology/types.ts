@@ -214,7 +214,7 @@ const logLabels: Record<AppointmentStatus, string> = {
   programada: 'Cita pendiente', presente: 'Llegada registrada', atendida: 'Atendida', 'no-asistio': 'Marcada como no asistió', cancelada: 'Cancelada',
 }
 
-/** "Llegada registrada · 7 oct 2026, 10:02 · Dr. Francisco Ramos · Universidad Politécnica de Chiapas" */
+/** "Llegada registrada · 7 oct 2026, 10:02 · Dr. Francisco · Universidad Politécnica de Chiapas" */
 export function formatLogEntry(entry: AppointmentLogEntry): string {
   return [entry.note ?? logLabels[entry.status], formatDateTime(entry.at), entry.by, entry.location].filter(Boolean).join(' · ')
 }

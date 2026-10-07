@@ -30,7 +30,7 @@ export default async function PortalLayout({ children }: { children: React.React
       { href: '/portal/documentos', label: 'Documentos' },
     ] : []),
     { href: '/portal/informacion', label: isPatient ? 'Mis datos' : 'Datos del paciente' },
-    ...(isPatient ? [{ href: '/portal/acceso-asistido', label: 'Acceso asistido' }] : []),
+    ...(isPatient ? [{ href: '/portal/encuesta', label: 'Encuesta' }, { href: '/portal/acceso-asistido', label: 'Acceso asistido' }] : []),
   ]
 
   return (

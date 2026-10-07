@@ -15,7 +15,8 @@ import {
   answers, appointmentOrigins, appointmentStatuses, appointmentStatusInfo, recommendations, thermalGrades, vascularPatterns, visits,
   type BreastSide, type FamilyCancer, type ThermalSide,
 } from './types'
-import { PSYCHO_SURVEY_KIND, PSYCHO_SURVEY_VERSION, otherKey, psychoSurveyQuestions } from './psycho-survey'
+import { PSYCHO_SURVEY_KIND, PSYCHO_SURVEY_VERSION } from './psycho-survey'
+import { readPsychoSurveyAnswers } from './survey-answers'
 
 const refresh = () => revalidatePath('/sistema', 'layout')
 
@@ -219,7 +220,7 @@ export async function scheduleAppointment(_: ActionState, formData: FormData): P
 
 export async function setAppointmentStatus(_: ActionState, formData: FormData): Promise<ActionState> {
   return runAction(formData, async (form) => {
-    const user = await requireStaff('oncology.write')
+    const user = await requireStaff('campaign.checkin')
     const patient = await patientOf(form)
     const status = form.choice('status', 'Estado', appointmentStatuses)
     await repository.updateAppointment(form.text('appointmentId', 'Cita'), { status, recorded: stampFor(user.name) })
@@ -236,17 +237,7 @@ export async function savePsychoSurvey(_: ActionState, formData: FormData): Prom
   const result = await runAction(formData, async (form) => {
     const user = await requireStaff('oncology.write')
     const patient = await patientOf(form)
-    const answers: Record<string, string> = {}
-    for (const question of psychoSurveyQuestions) {
-      const value = form.optional(question.id, 300)
-      if (!value) continue
-      if (question.options && !question.options.includes(value)) reject(`Respuesta no válida en: ${question.text}`)
-      if (question.input === 'number' && !/^\d{1,3}(\.\d)?$/.test(value)) reject(`Escribe solo un número en: ${question.text}`)
-      answers[question.id] = value
-      const detail = question.other && value === question.other ? form.optional(otherKey(question.id), 300) : undefined
-      if (detail) answers[otherKey(question.id)] = detail
-    }
-    if (!Object.keys(answers).length) reject('La encuesta está vacía: registra al menos una respuesta.')
+    const answers = readPsychoSurveyAnswers(form)
 
     const survey = await repository.insertSurvey(patient.id, {
       kind: PSYCHO_SURVEY_KIND, version: PSYCHO_SURVEY_VERSION, answers, appliedBy: user.name, recorded: stampFor(user.name),
