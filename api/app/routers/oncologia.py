@@ -15,7 +15,7 @@ from .. import db
 from ..oncology_rules import ASYMMETRY_DELTA, assess, overall_grade, suggest_recommendation
 from ..schemas import (
     Appointment, AppointmentIn, AppointmentPatch, BreastExam, BreastExamIn, Campaign, CampaignIn, FileRef, OncologyProfile, RiskFactors,
-    Screening, Stamp, Survey, SurveyIn, Thermography, ThermographyIn,
+    Screening, Stamp, Survey, SurveyEdit, SurveyIn, Thermography, ThermographyIn,
 )
 from ..settings import ALLOWED_IMAGE_TYPES, FILES_DIR, MAX_UPLOAD_BYTES
 from .expedientes import get_patient_or_404
@@ -379,6 +379,35 @@ def add_survey(patient_id: str, body: SurveyIn) -> dict[str, Any]:
             (survey.id, patient_id, body.campaign_id, body.kind, db.dumps(survey.doc()), survey.created_at),
         )
     return survey.doc()
+
+
+@router.put("/pacientes/{patient_id}/encuestas/{survey_id}")
+def edit_survey(patient_id: str, survey_id: str, body: SurveyEdit) -> dict[str, Any]:
+    """Corrige las respuestas. Las anteriores quedan en `edits` (con quién, cuándo y dónde), nunca se pierden."""
+    if not body.answers:
+        raise HTTPException(422, "La encuesta no tiene respuestas.")
+    with db.transaction() as conn:
+        row = conn.execute("SELECT data FROM surveys WHERE id = ? AND patient_id = ?", (survey_id, patient_id)).fetchone()
+        if not row:
+            raise HTTPException(404, "La encuesta no existe.")
+        if body.campaign_id and not conn.execute("SELECT 1 FROM campaigns WHERE id = ?", (body.campaign_id,)).fetchone():
+            raise HTTPException(404, "La campaña no existe.")
+        survey = _survey(row)
+        edit = {**body.edited.doc(), "previousAnswers": survey["answers"]}
+        if survey.get("campaignId"):
+            edit["previousCampaignId"] = survey["campaignId"]
+        if survey.get("visit"):
+            edit["previousVisit"] = survey["visit"]
+        survey["answers"] = body.answers
+        survey.pop("campaignId", None)
+        survey.pop("visit", None)
+        if body.campaign_id:
+            survey["campaignId"] = body.campaign_id
+        if body.visit:
+            survey["visit"] = body.visit
+        survey["edits"] = [*survey.get("edits", []), edit]
+        conn.execute("UPDATE surveys SET data = ?, campaign_id = ? WHERE id = ?", (db.dumps(survey), body.campaign_id, survey_id))
+    return survey
 
 
 @router.get("/pacientes/{patient_id}/encuestas")

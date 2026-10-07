@@ -2,17 +2,22 @@ import { ActionForm } from '@/components/ui/action-form'
 import { Card } from '@/components/ui/card'
 import { Field, FieldGrid, Input, Select } from '@/components/ui/field'
 import { formatDate } from '@/lib/format'
-import { savePsychoSurvey } from '../actions'
+import { savePsychoSurvey, updatePsychoSurvey } from '../actions'
 import { submitOwnPsychoSurvey } from '../portal-actions'
 import { otherKey, patientSurveySections, psychoSurvey, type SurveyQuestion, type SurveyResponse, type SurveySection } from '../psycho-survey'
 import { visitLabels, visits, type Campaign, type Visit } from '../types'
+
+type Answers = Record<string, string | undefined>
+
+const chip = 'cursor-pointer select-none rounded-full border border-input bg-card px-3.5 py-2 text-[14px] leading-5 transition-colors hover:bg-muted has-[:checked]:border-primary has-[:checked]:bg-primary has-[:checked]:text-primary-foreground has-[:focus-visible]:ring-4 has-[:focus-visible]:ring-ring/30'
 
 /**
  * Opciones como botones grandes (radio nativo): cómodo en tablet y sin JavaScript.
  * El texto se muestra tal cual viene en `nueva_encuesta.xlsx` (ya trae su propia numeración).
  */
-function Question({ question, defaultValue }: { question: SurveyQuestion; defaultValue?: string }) {
+function Question({ question, defaults, clearable }: { question: SurveyQuestion; defaults?: Answers; clearable?: boolean }) {
   const label = question.text
+  const defaultValue = defaults?.[question.id]
   if (question.input === 'curp') {
     return (
       <Field label={label} hint={question.hint}>
@@ -23,14 +28,14 @@ function Question({ question, defaultValue }: { question: SurveyQuestion; defaul
   if (!question.options && question.input === 'text') {
     return (
       <Field label={label} hint={question.hint}>
-        <Input name={question.id} maxLength={300} className="max-w-xl" autoComplete="off" />
+        <Input name={question.id} defaultValue={defaultValue} maxLength={300} className="max-w-xl" autoComplete="off" />
       </Field>
     )
   }
   if (!question.options) {
     return (
       <Field label={label} hint={question.hint}>
-        <Input name={question.id} inputMode="decimal" className="max-w-40" autoComplete="off" />
+        <Input name={question.id} defaultValue={defaultValue} inputMode="decimal" className="max-w-40" autoComplete="off" />
       </Field>
     )
   }
@@ -40,28 +45,32 @@ function Question({ question, defaultValue }: { question: SurveyQuestion; defaul
       {question.hint && <p className="mt-0.5 text-[13px] text-subtle">{question.hint}</p>}
       <div className="mt-2.5 flex flex-wrap gap-2">
         {question.options.map((option) => (
-          <label
-            key={option}
-            className="cursor-pointer select-none rounded-full border border-input bg-card px-3.5 py-2 text-[14px] leading-5 transition-colors hover:bg-muted has-[:checked]:border-primary has-[:checked]:bg-primary has-[:checked]:text-primary-foreground has-[:focus-visible]:ring-4 has-[:focus-visible]:ring-ring/30"
-          >
-            <input type="radio" name={question.id} value={option} className="sr-only" />
+          <label key={option} className={chip}>
+            <input type="radio" name={question.id} value={option} defaultChecked={defaultValue === option} className="sr-only" />
             {option}
           </label>
         ))}
+        {/* Al corregir, permite quitar una respuesta marcada por error (un radio no se puede desmarcar). */}
+        {clearable && (
+          <label className={`${chip} border-dashed text-muted-foreground`}>
+            <input type="radio" name={question.id} value="" defaultChecked={!defaultValue} className="sr-only" />
+            Sin respuesta
+          </label>
+        )}
       </div>
-      {question.other && <Input name={otherKey(question.id)} placeholder={`Si eligió “${question.other}”, especifique`} className="mt-2.5 max-w-md" autoComplete="off" />}
+      {question.other && <Input name={otherKey(question.id)} defaultValue={defaults?.[otherKey(question.id)]} placeholder={`Si eligió “${question.other}”, especifique`} className="mt-2.5 max-w-md" autoComplete="off" />}
     </fieldset>
   )
 }
 
-/** `defaults`: respuestas precargadas por id de pregunta (p. ej. la CURP que ya está en el expediente). */
-function SurveySections({ sections, defaults }: { sections: SurveySection[]; defaults?: Record<string, string | undefined> }) {
+/** `defaults`: respuestas precargadas por id de pregunta (p. ej. la CURP del expediente, o las ya guardadas al corregir). */
+function SurveySections({ sections, defaults, clearable }: { sections: SurveySection[]; defaults?: Answers; clearable?: boolean }) {
   return sections.map((section) => (
     <Card key={section.id} className="p-5 sm:p-7">
       <h2 className="text-title-3">{section.title}</h2>
       {section.description && <p className="mt-1 text-[13px] text-subtle">{section.description}</p>}
       <div className="mt-6 space-y-7">
-        {section.questions.map((question) => <Question key={question.id} question={question} defaultValue={defaults?.[question.id]} />)}
+        {section.questions.map((question) => <Question key={question.id} question={question} defaults={defaults} clearable={clearable} />)}
       </div>
     </Card>
   ))
@@ -103,24 +112,29 @@ export function PsychoSurveyAnswers({ survey, sections = psychoSurvey }: { surve
   )
 }
 
-export function PsychoSurveyForm({ patientId, curp, campaigns, campaignId, visit }: { patientId: string; curp?: string; campaigns: Campaign[]; campaignId?: string; visit?: Visit }) {
+/** Captura una encuesta nueva o, con `survey`, corrige una ya guardada (precargada con sus respuestas). */
+export function PsychoSurveyForm({ patientId, curp, campaigns, campaignId, visit, survey }: {
+  patientId: string; curp?: string; campaigns: Campaign[]; campaignId?: string; visit?: Visit; survey?: SurveyResponse
+}) {
+  const editing = survey !== undefined
   return (
-    <ActionForm action={savePsychoSurvey} submitLabel="Guardar encuesta" cancel={false} className="space-y-6">
+    <ActionForm action={editing ? updatePsychoSurvey : savePsychoSurvey} submitLabel={editing ? 'Guardar correcciones' : 'Guardar encuesta'} cancel={false} className="space-y-6">
       <input type="hidden" name="patientId" value={patientId} />
+      {editing && <input type="hidden" name="surveyId" value={survey.id} />}
       <Card className="p-5 sm:p-7">
         <FieldGrid>
           <Field label="Campaña">
-            <Select name="campaignId" defaultValue={campaignId ?? ''}>
+            <Select name="campaignId" defaultValue={(editing ? survey.campaignId : campaignId) ?? ''}>
               <option value="">Fuera de campaña</option>
               {campaigns.map((c) => <option key={c.id} value={c.id}>{c.name} · {formatDate(c.date, 'medium')}</option>)}
             </Select>
           </Field>
           <Field label="Visita">
-            <Select name="visit" defaultValue={visit ?? 'primera-vez'}>{visits.map((v) => <option key={v} value={v}>{visitLabels[v]}</option>)}</Select>
+            <Select name="visit" defaultValue={(editing ? survey.visit : visit) ?? 'primera-vez'}>{visits.map((v) => <option key={v} value={v}>{visitLabels[v]}</option>)}</Select>
           </Field>
         </FieldGrid>
       </Card>
-      <SurveySections sections={psychoSurvey} defaults={{ curp }} />
+      <SurveySections sections={psychoSurvey} defaults={editing ? survey.answers : { curp }} clearable={editing} />
       <p className="px-1 text-[13px] leading-5 text-subtle">Las preguntas sin respuesta se guardan como no contestadas. Si no sabe la respuesta, marque “No sabe”.</p>
     </ActionForm>
   )

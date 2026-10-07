@@ -258,6 +258,15 @@ class Appointment(Camel):
 # ── Encuestas ───────────────────────────────────────────────────────────────────
 
 
+def _clean_answers(value: dict[str, str]) -> dict[str, str]:
+    if len(value) > 300:
+        raise ValueError("Demasiadas respuestas.")
+    for key, answer in value.items():
+        if len(key) > 60 or len(answer) > 500:
+            raise ValueError(f"Respuesta demasiado larga: {key}")
+    return {k: v.strip() for k, v in value.items() if v and v.strip()}
+
+
 class SurveyIn(Camel):
     """Respuestas de un cuestionario. La definición de las preguntas vive en la app web; aquí se guardan tal cual."""
 
@@ -272,15 +281,24 @@ class SurveyIn(Camel):
     @field_validator("answers")
     @classmethod
     def _check_answers(cls, value: dict[str, str]) -> dict[str, str]:
-        if len(value) > 300:
-            raise ValueError("Demasiadas respuestas.")
-        for key, answer in value.items():
-            if len(key) > 60 or len(answer) > 500:
-                raise ValueError(f"Respuesta demasiado larga: {key}")
-        return {k: v.strip() for k, v in value.items() if v and v.strip()}
+        return _clean_answers(value)
 
 
 class Survey(SurveyIn):
     id: str
     patient_id: str
     created_at: str
+
+
+class SurveyEdit(Camel):
+    """Corrección de una encuesta ya guardada. Se conservan quién la aplicó y cuándo; la edición se agrega al historial."""
+
+    campaign_id: str | None = None
+    visit: Visit | None = None
+    answers: dict[str, str]
+    edited: Stamp
+
+    @field_validator("answers")
+    @classmethod
+    def _check_answers(cls, value: dict[str, str]) -> dict[str, str]:
+        return _clean_answers(value)

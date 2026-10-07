@@ -68,6 +68,10 @@ export async function insertSurvey(patientId: string, survey: Omit<SurveyRespons
   return api(`/pacientes/${segment(patientId)}/encuestas`, { method: 'POST', body: survey })
 }
 
+export async function updateSurvey(patientId: string, surveyId: string, changes: { answers: Record<string, string>; campaignId?: string; visit?: string; edited: Stamp }): Promise<SurveyResponse> {
+  return api(`/pacientes/${segment(patientId)}/encuestas/${segment(surveyId)}`, { method: 'PUT', body: changes })
+}
+
 export async function listPatientSurveys(patientId: string): Promise<SurveyResponse[]> {
   return api(`/pacientes/${segment(patientId)}/encuestas`)
 }

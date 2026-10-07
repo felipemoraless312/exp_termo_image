@@ -15,7 +15,7 @@ import {
   answers, appointmentOrigins, appointmentStatuses, appointmentStatusInfo, recommendations, thermalGrades, vascularPatterns, visits,
   type BreastSide, type FamilyCancer, type ThermalSide,
 } from './types'
-import { PSYCHO_SURVEY_KIND, PSYCHO_SURVEY_VERSION } from './psycho-survey'
+import { currentAnswerKeys, PSYCHO_SURVEY_KIND, PSYCHO_SURVEY_VERSION } from './psycho-survey'
 import { readPsychoSurveyAnswers } from './survey-answers'
 
 const refresh = () => revalidatePath('/sistema', 'layout')
@@ -246,6 +246,30 @@ export async function savePsychoSurvey(_: ActionState, formData: FormData): Prom
     audit(user, 'alta', 'Encuesta', patient.id, 'Registró la encuesta de psico-oncología')
     refresh()
     target = `/sistema/pacientes/${patient.id}/encuesta/${survey.id}`
+  })
+  if (target) redirect(target)
+  return result
+}
+
+/** Corrige una encuesta ya guardada. Las respuestas anteriores quedan en el historial de la encuesta (API) y en la bitácora. */
+export async function updatePsychoSurvey(_: ActionState, formData: FormData): Promise<ActionState> {
+  let target: string | undefined
+  const result = await runAction(formData, async (form) => {
+    const user = await requireStaff('oncology.write')
+    const patient = await patientOf(form)
+    const surveyId = form.text('surveyId', 'Encuesta')
+    const survey = (await repository.listPatientSurveys(patient.id)).find((s) => s.id === surveyId) ?? reject('La encuesta no existe.')
+    const answers = readPsychoSurveyAnswers(form)
+    // Respuestas a preguntas de versiones anteriores de la encuesta: el formulario actual no las muestra, así que se conservan.
+    const kept = Object.fromEntries(Object.entries(survey.answers).filter(([key]) => !currentAnswerKeys.has(key)))
+    const changed = [...new Set([...Object.keys(answers), ...Object.keys(survey.answers)])].filter((key) => currentAnswerKeys.has(key) && answers[key] !== survey.answers[key]).length
+
+    await repository.updateSurvey(patient.id, survey.id, {
+      answers: { ...kept, ...answers }, campaignId: form.optional('campaignId', 40), visit: form.optionalChoice('visit', visits), edited: stampFor(user.name),
+    })
+    audit(user, 'modificacion', 'Encuesta', patient.id, `Corrigió la encuesta de psico-oncología del ${survey.createdAt.slice(0, 10)} (${changed} respuesta(s) cambiada(s))`)
+    refresh()
+    target = `/sistema/pacientes/${patient.id}/encuesta/${survey.id}?editada=1`
   })
   if (target) redirect(target)
   return result

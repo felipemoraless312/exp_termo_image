@@ -191,7 +191,14 @@ export interface SurveyResponse {
   appliedBy: string
   createdAt: string
   recorded?: Stamp
+  /** Correcciones posteriores, de la más antigua a la más reciente, con las respuestas que había antes de cada una. */
+  edits?: SurveyEdit[]
 }
+
+export type SurveyEdit = Stamp & { previousAnswers: Record<string, string>; previousCampaignId?: string; previousVisit?: string }
+
+/** Ids de las preguntas de la versión actual (incluido el detalle de "Otros"), para conservar al editar lo que ya no está en ella. */
+export const currentAnswerKeys = new Set(psychoSurveyQuestions.flatMap((q) => (q.other ? [q.id, otherKey(q.id)] : [q.id])))
 
 /** Respuestas contestadas (sin contar los detalles de "Otros"). */
 export function answeredCount(answers: Record<string, string>) {
