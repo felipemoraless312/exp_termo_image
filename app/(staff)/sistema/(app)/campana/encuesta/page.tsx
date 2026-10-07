@@ -15,14 +15,14 @@ export const metadata = { title: 'Resultados de la encuesta' }
 
 const percent = (value: number, total: number) => (total ? `${Math.round((value / total) * 100)} %` : '—')
 
-function QuestionResult({ question, number, surveys }: { question: SurveyQuestion; number: number; surveys: SurveyResponse[] }) {
+function QuestionResult({ question, surveys }: { question: SurveyQuestion; surveys: SurveyResponse[] }) {
   const values = surveys.map((s) => s.answers[question.id]).filter((v): v is string => !!v)
   const answered = values.length
 
   if (!question.options && question.input === 'text') {
     return (
       <li className="py-4">
-        <p className="text-[14px] font-medium">{number}. {question.text}</p>
+        <p className="text-[14px] font-medium">{question.text}</p>
         <p className="mt-0.5 text-[12px] text-subtle">{answered} de {surveys.length} contestaron</p>
         {answered > 0 && (
           <ul className="mt-2 list-disc space-y-1 pl-5 text-[13px] text-muted-foreground">
@@ -38,7 +38,7 @@ function QuestionResult({ question, number, surveys }: { question: SurveyQuestio
     const mean = numbers.length ? numbers.reduce((sum, n) => sum + n, 0) / numbers.length : undefined
     return (
       <li className="py-4">
-        <p className="text-[14px] font-medium">{number}. {question.text}</p>
+        <p className="text-[14px] font-medium">{question.text}</p>
         <p className="mt-1 text-[13px] text-muted-foreground">
           {numbers.length ? `Promedio ${mean!.toFixed(1)} · mediana ${numbers[Math.floor(numbers.length / 2)]} · de ${numbers[0]} a ${numbers.at(-1)} · ${answered} respuestas` : 'Sin respuestas'}
         </p>
@@ -48,7 +48,7 @@ function QuestionResult({ question, number, surveys }: { question: SurveyQuestio
 
   return (
     <li className="py-4">
-      <p className="text-[14px] font-medium">{number}. {question.text}</p>
+      <p className="text-[14px] font-medium">{question.text}</p>
       <p className="mb-3 mt-0.5 text-[12px] text-subtle">{answered} de {surveys.length} contestaron</p>
       {answered > 0 && (
         <BarList
@@ -96,7 +96,7 @@ export default async function SurveyResultsPage({ searchParams }: PageProps<'/si
             <Card key={section.id} className="p-5 sm:p-7">
               <h2 className="text-title-3">{section.title}</h2>
               <ol className="mt-2 divide-y divide-separator">
-                {section.questions.map((question, i) => <QuestionResult key={question.id} question={question} number={i + 1} surveys={surveys} />)}
+                {section.questions.map((question) => <QuestionResult key={question.id} question={question} surveys={surveys} />)}
               </ol>
             </Card>
           ))}

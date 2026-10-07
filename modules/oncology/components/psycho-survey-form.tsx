@@ -7,9 +7,12 @@ import { submitOwnPsychoSurvey } from '../portal-actions'
 import { otherKey, patientSurveySections, psychoSurvey, type SurveyQuestion, type SurveyResponse, type SurveySection } from '../psycho-survey'
 import { visitLabels, visits, type Campaign, type Visit } from '../types'
 
-/** Opciones como botones grandes (radio nativo): cómodo en tablet y sin JavaScript. */
-function Question({ question, number }: { question: SurveyQuestion; number: number }) {
-  const label = `${number}. ${question.text}`
+/**
+ * Opciones como botones grandes (radio nativo): cómodo en tablet y sin JavaScript.
+ * El texto se muestra tal cual viene en `nueva_encuesta.xlsx` (ya trae su propia numeración).
+ */
+function Question({ question }: { question: SurveyQuestion }) {
+  const label = question.text
   if (!question.options && question.input === 'text') {
     return (
       <Field label={label} hint={question.hint}>
@@ -50,7 +53,7 @@ function SurveySections({ sections }: { sections: SurveySection[] }) {
       <h2 className="text-title-3">{section.title}</h2>
       {section.description && <p className="mt-1 text-[13px] text-subtle">{section.description}</p>}
       <div className="mt-6 space-y-7">
-        {section.questions.map((question, i) => <Question key={question.id} question={question} number={i + 1} />)}
+        {section.questions.map((question) => <Question key={question.id} question={question} />)}
       </div>
     </Card>
   ))
@@ -75,12 +78,12 @@ export function PsychoSurveyAnswers({ survey, sections = psychoSurvey }: { surve
         <Card key={section.id} className="p-5 sm:p-7">
           <h2 className="text-title-3">{section.title}</h2>
           <ol className="mt-4 divide-y divide-separator">
-            {section.questions.map((question, i) => {
+            {section.questions.map((question) => {
               const value = answers[question.id]
               const detail = answers[otherKey(question.id)]
               return (
                 <li key={question.id} className="flex flex-col gap-1 py-3 sm:flex-row sm:items-baseline sm:justify-between sm:gap-6">
-                  <span className="text-[14px] text-muted-foreground">{i + 1}. {question.text}</span>
+                  <span className="text-[14px] text-muted-foreground">{question.text}</span>
                   <span className={value ? 'shrink-0 text-[15px] font-medium sm:max-w-[45%] sm:text-right' : 'shrink-0 text-[14px] text-subtle'}>{value ? `${value}${detail ? `: ${detail}` : ''}` : 'Sin respuesta'}</span>
                 </li>
               )
