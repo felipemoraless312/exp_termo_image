@@ -22,7 +22,8 @@ export type SurveyQuestion = {
   options?: readonly string[]
   /** Opción que habilita escribir el detalle ("Otros ___"). */
   other?: string
-  input?: 'text' | 'number'
+  /** `curp`: se valida el formato oficial (18 caracteres) y no se lista en los resultados agregados. */
+  input?: 'text' | 'number' | 'curp'
   hint?: string
 }
 
@@ -258,6 +259,21 @@ export const psychoSurvey: SurveySection[] = [
       { id: 'qs10', text: '10.Función Hepática ( Opcional) TGO / AST ( mg/dL / U/L )', input: 'number' },
       { id: 'qs11', text: '11.Función Hepática ( Opcional) TGP / ALT (U/L)', input: 'number' },
       { id: 'qs12', text: '12.Función Hepática ( Opcional) Bilirrubina Total (mg/dL)', input: 'number' },
+    ],
+  },
+  {
+    id: 'identificacion',
+    title: 'Datos de identificación',
+    questions: [
+      { id: 'curp', text: 'CURP', input: 'curp' },
+    ],
+  },
+  {
+    id: 'quimica2',
+    title: 'Resultados de química sanguínea',
+    description: 'La captura el personal con los resultados del laboratorio.',
+    staffOnly: true,
+    questions: [
       { id: 'renal', text: '2. Función Renal (Riñones) 2.1Creatinina (mg/dL) 2.2Urea (mg/dL) 2.3 Nitrógeno Ureico en Sangre (BUN) (mg/dL)', input: 'text' },
       { id: 'quimica', text: 'Resultados de quimia sanguinea', input: 'text' },
     ],

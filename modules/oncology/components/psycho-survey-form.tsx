@@ -11,8 +11,15 @@ import { visitLabels, visits, type Campaign, type Visit } from '../types'
  * Opciones como botones grandes (radio nativo): cómodo en tablet y sin JavaScript.
  * El texto se muestra tal cual viene en `nueva_encuesta.xlsx` (ya trae su propia numeración).
  */
-function Question({ question }: { question: SurveyQuestion }) {
+function Question({ question, defaultValue }: { question: SurveyQuestion; defaultValue?: string }) {
   const label = question.text
+  if (question.input === 'curp') {
+    return (
+      <Field label={label} hint={question.hint}>
+        <Input name={question.id} defaultValue={defaultValue} maxLength={18} autoCapitalize="characters" spellCheck={false} className="max-w-xs uppercase" autoComplete="off" />
+      </Field>
+    )
+  }
   if (!question.options && question.input === 'text') {
     return (
       <Field label={label} hint={question.hint}>
@@ -47,23 +54,24 @@ function Question({ question }: { question: SurveyQuestion }) {
   )
 }
 
-function SurveySections({ sections }: { sections: SurveySection[] }) {
+/** `defaults`: respuestas precargadas por id de pregunta (p. ej. la CURP que ya está en el expediente). */
+function SurveySections({ sections, defaults }: { sections: SurveySection[]; defaults?: Record<string, string | undefined> }) {
   return sections.map((section) => (
     <Card key={section.id} className="p-5 sm:p-7">
       <h2 className="text-title-3">{section.title}</h2>
       {section.description && <p className="mt-1 text-[13px] text-subtle">{section.description}</p>}
       <div className="mt-6 space-y-7">
-        {section.questions.map((question) => <Question key={question.id} question={question} />)}
+        {section.questions.map((question) => <Question key={question.id} question={question} defaultValue={defaults?.[question.id]} />)}
       </div>
     </Card>
   ))
 }
 
 /** La paciente contesta su propia encuesta en el portal: sin datos de campaña ni de visita (se toman de su cita). */
-export function PortalPsychoSurveyForm() {
+export function PortalPsychoSurveyForm({ curp }: { curp?: string }) {
   return (
     <ActionForm action={submitOwnPsychoSurvey} submitLabel="Enviar mis respuestas" pendingLabel="Enviando…" cancel={false} className="space-y-6">
-      <SurveySections sections={patientSurveySections} />
+      <SurveySections sections={patientSurveySections} defaults={{ curp }} />
       <p className="px-1 text-[13px] leading-5 text-subtle">Puedes dejar preguntas sin contestar. Si no sabes la respuesta, no te preocupes: marca “No sabe”.</p>
     </ActionForm>
   )
@@ -95,7 +103,7 @@ export function PsychoSurveyAnswers({ survey, sections = psychoSurvey }: { surve
   )
 }
 
-export function PsychoSurveyForm({ patientId, campaigns, campaignId, visit }: { patientId: string; campaigns: Campaign[]; campaignId?: string; visit?: Visit }) {
+export function PsychoSurveyForm({ patientId, curp, campaigns, campaignId, visit }: { patientId: string; curp?: string; campaigns: Campaign[]; campaignId?: string; visit?: Visit }) {
   return (
     <ActionForm action={savePsychoSurvey} submitLabel="Guardar encuesta" cancel={false} className="space-y-6">
       <input type="hidden" name="patientId" value={patientId} />
@@ -112,7 +120,7 @@ export function PsychoSurveyForm({ patientId, campaigns, campaignId, visit }: { 
           </Field>
         </FieldGrid>
       </Card>
-      <SurveySections sections={psychoSurvey} />
+      <SurveySections sections={psychoSurvey} defaults={{ curp }} />
       <p className="px-1 text-[13px] leading-5 text-subtle">Las preguntas sin respuesta se guardan como no contestadas. Si no sabe la respuesta, marque “No sabe”.</p>
     </ActionForm>
   )

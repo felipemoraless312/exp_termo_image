@@ -15,7 +15,10 @@ export function readPsychoSurveyAnswers(form: FormFields, by: 'staff' | 'patient
     let value = form.optional(question.id, 300)
     if (!value) continue
     if (question.options && !question.options.includes(value)) reject(`Respuesta no válida en: ${question.text}`)
-    if (!question.options && question.input !== 'text') {
+    if (question.input === 'curp') {
+      value = value.toUpperCase().replace(/\s+/g, '')
+      if (!/^[A-Z]{4}\d{6}[HMX][A-Z]{5}[A-Z\d]\d$/.test(value)) reject('La CURP no es válida: debe tener 18 caracteres (p. ej. GOMA850315MCSRRN09).')
+    } else if (!question.options && question.input !== 'text') {
       value = value.replace(',', '.')
       if (!/^\d{1,4}(\.\d{1,2})?$/.test(value)) reject(`Escribe solo un número en: ${question.text}`)
     }

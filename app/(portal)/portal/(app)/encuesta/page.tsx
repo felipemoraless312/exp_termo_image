@@ -41,7 +41,7 @@ export default async function PortalSurveyPage() {
         title="Encuesta de psico-oncología"
         description="Este cuestionario tiene como objetivo saber qué tanto conocen las mujeres sobre la prevención del cáncer de mama y de cérvix, para diseñar estrategias que aumenten la participación en estos programas. Tu ayuda es muy valiosa. Si no sabes una respuesta, no te preocupes: marca “No sabe”."
       />
-      <PortalPsychoSurveyForm />
+      <PortalPsychoSurveyForm curp={viewer.patient.curp} />
     </>
   )
 }

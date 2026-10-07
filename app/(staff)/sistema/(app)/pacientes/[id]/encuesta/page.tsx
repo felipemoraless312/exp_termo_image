@@ -27,7 +27,7 @@ export default async function NewPsychoSurveyPage({ params }: PageProps<'/sistem
         title="Encuesta de psico-oncología"
         description="Conocimiento sobre la prevención del cáncer de mama y de cérvix. Si no sabe la respuesta, no se preocupe: marque “No sabe”."
       />
-      <PsychoSurveyForm patientId={patient.id} campaigns={campaigns} campaignId={appointment?.campaign.id} visit={appointment?.visit} />
+      <PsychoSurveyForm patientId={patient.id} curp={patient.curp} campaigns={campaigns} campaignId={appointment?.campaign.id} visit={appointment?.visit} />
     </>
   )
 }

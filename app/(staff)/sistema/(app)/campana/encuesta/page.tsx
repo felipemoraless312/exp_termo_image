@@ -19,6 +19,16 @@ function QuestionResult({ question, surveys }: { question: SurveyQuestion; surve
   const values = surveys.map((s) => s.answers[question.id]).filter((v): v is string => !!v)
   const answered = values.length
 
+  // Dato personal: solo se cuenta, no se lista.
+  if (question.input === 'curp') {
+    return (
+      <li className="py-4">
+        <p className="text-[14px] font-medium">{question.text}</p>
+        <p className="mt-0.5 text-[12px] text-subtle">{answered} de {surveys.length} contestaron</p>
+      </li>
+    )
+  }
+
   if (!question.options && question.input === 'text') {
     return (
       <li className="py-4">
