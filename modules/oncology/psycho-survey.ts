@@ -3,17 +3,21 @@
  * del cáncer de mama y de cérvix. La definición vive aquí; la API solo guarda las respuestas
  * (`{ idPregunta: opción }`), así que cambiar el texto de una pregunta no altera lo ya capturado.
  * Las instrucciones de salto del original ("si la respuesta es NO pase a la 6") se muestran como ayuda.
+ *
+ * Versión 2 (`nueva_encuesta.xlsx`, formulario de Google): agrega preguntas de mastografía, detección oportuna,
+ * conocimiento general del cáncer de mama y resultados de química sanguínea. El Excel solo trae el texto de las
+ * preguntas, así que las que piden elegir de una lista que no viene en él quedan como respuesta abierta.
  */
 
 import type { Stamp } from '@/modules/patients/stamp'
 
 export const PSYCHO_SURVEY_KIND = 'psico-oncologia'
-export const PSYCHO_SURVEY_VERSION = 1
+export const PSYCHO_SURVEY_VERSION = 2
 
 export type SurveyQuestion = {
   id: string
   text: string
-  /** Opciones de respuesta única. Sin opciones, es una respuesta abierta. */
+  /** Opciones de respuesta única. Sin opciones, es una respuesta abierta (`input`: número por omisión, o texto). */
   options?: readonly string[]
   /** Opción que habilita escribir el detalle ("Otros ___"). */
   other?: string
@@ -21,7 +25,14 @@ export type SurveyQuestion = {
   hint?: string
 }
 
-export type SurveySection = { id: string; title: string; questions: SurveyQuestion[] }
+export type SurveySection = {
+  id: string
+  title: string
+  description?: string
+  /** Solo la captura el personal (p. ej. resultados de laboratorio); no se muestra a la paciente en el portal. */
+  staffOnly?: boolean
+  questions: SurveyQuestion[]
+}
 
 const yesNo = ['Sí', 'No'] as const
 const yesNoUnknown = ['Sí', 'No', 'No sabe'] as const
@@ -152,7 +163,7 @@ export const psychoSurvey: SurveySection[] = [
       { id: 'masto1', text: '¿Qué tan importante considera usted el estudio de la mastografía?', options: importance },
       { id: 'masto2', text: '¿Sabe usted para qué sirve la mastografía?', options: ['Para detectar un cáncer oportunamente', 'No sabe', 'Otros'], other: 'Otros' },
       { id: 'masto3', text: 'Si viene a realizarse la mastografía, ¿qué la motivó?', options: ['Saber su estado de salud', 'Prevenir alguna enfermedad', 'Recomendación de algún familiar/amigo', 'Órdenes médicas', 'Porque tengo síntomas que me preocupan', 'Otros'], other: 'Otros' },
-      { id: 'masto4', text: '¿Es la primera vez que se la realiza?', options: yesNo, hint: 'Si la respuesta es NO, pase a la pregunta 6.' },
+      { id: 'masto4', text: '¿Es la primera vez que se la realiza?', options: yesNo, hint: 'Si la respuesta es NO, no conteste la siguiente pregunta.' },
       { id: 'masto5', text: 'Si respondió que SÍ, ¿por qué no había asistido a realizarse la prueba?', options: ['Porque no sabía que existía', 'Cuestiones económicas', 'Vergüenza', 'Miedo', 'Es dolorosa', 'Otros'], other: 'Otros' },
       { id: 'masto6', text: 'Si respondió que NO, ¿cuántos estudios de mastografía se ha realizado?', input: 'number' },
       { id: 'masto7', text: '¿Sabe usted si la mastografía emplea rayos X?', options: yesNoUnknown },
@@ -161,9 +172,73 @@ export const psychoSurvey: SurveySection[] = [
       { id: 'masto10', text: '¿Algún médico le ha recomendado realizarse la mastografía?', options: yesNo },
       { id: 'masto11', text: '¿Sabe usted con qué frecuencia se debe realizar una mastografía?', options: frequency },
       { id: 'masto12', text: '¿Cómo supo usted de la existencia de esta prueba?', options: learnedFrom, other: 'Otros' },
+      { id: 'masto13', text: '¿Sabe cómo se realiza una mastografía?', options: yesNo },
+      { id: 'masto14', text: '¿Sabe si durante la mastografía se ejerce presión sobre las mamas?', options: yesNoUnknown },
+      { id: 'masto15', text: '¿Sabe qué molestias podría sentir durante el estudio?', options: yesNo },
+      { id: 'masto16', text: '¿Sabe qué debe hacer si siente dolor o demasiada incomodidad durante el procedimiento?', options: yesNo },
+      { id: 'masto17', text: '¿Considera que toda mujer que se realiza una mastografía tiene cáncer de mama?', options: yesNoUnknown },
+      { id: 'masto18', text: '¿Un resultado anormal de mastografía significa necesariamente que la mujer tiene cáncer?', options: yesNoUnknown },
+      { id: 'masto19', text: '¿Sabe qué puede suceder después de realizarse una mastografía?', options: yesNo },
+      { id: 'masto20', text: '¿Sabe si una mujer puede necesitar otros estudios después de la mastografía?', options: yesNoUnknown },
+      { id: 'masto21', text: '¿Qué estudios podrían solicitarse si se necesita evaluar una alteración?', input: 'text', hint: 'Puede anotar varios.' },
+      { id: 'masto22', text: '¿Alguien le explicó previamente cómo se realiza el estudio?', options: yesNo },
+      { id: 'masto23', text: '¿Sabe qué recomendaciones debe seguir antes de acudir a una mastografía?', options: yesNo },
+      { id: 'masto24', text: '¿Qué le gustaría saber antes de realizarse el estudio?', input: 'text', hint: 'Puede anotar varias cosas.' },
+      { id: 'masto25', text: '¿Cuál es su principal duda sobre la mastografía?', input: 'text' },
+    ],
+  },
+  {
+    id: 'deteccion',
+    title: 'Detección oportuna del cáncer de mama',
+    questions: [
+      { id: 'det1', text: '¿Sabe qué significa detectar el cáncer de mama oportunamente?', options: yesNo },
+      { id: 'det2', text: '¿Qué estudio conoce para detectar cambios en las mamas antes de que se presenten molestias?', input: 'text' },
+      { id: 'det3', text: '¿Cuáles cambios pueden ser señales de alarma?', input: 'text', hint: 'Puede anotar varios.' },
+      { id: 'det4', text: '¿Una bolita en la mama siempre significa que una mujer tiene cáncer?', options: yesNoUnknown },
+      { id: 'det5', text: 'Si una mujer no tiene molestias, ¿significa que no necesita informarse sobre la detección del cáncer de mama?', options: yesNoUnknown },
+      { id: 'det6', text: '¿Qué debe hacer una mujer si identifica un cambio nuevo en su mama?', input: 'text' },
+      { id: 'det7', text: '¿Sabe qué es una mastografía?', options: yesNo },
+      { id: 'det8', text: '¿Considera que la mastografía es útil para la detección temprana del cáncer de mama?', options: yesNoUnknown },
+    ],
+  },
+  {
+    id: 'conocimiento',
+    title: 'Conocimiento general sobre el cáncer de mama',
+    questions: [
+      { id: 'con1', text: '¿Ha escuchado hablar del cáncer de mama?', options: yesNo },
+      { id: 'con2', text: '¿Sabe qué es el cáncer de mama?', options: yesNo },
+      { id: 'con3', text: '¿Qué considera que es el cáncer de mama?', input: 'text' },
+      { id: 'con4', text: '¿Considera que el cáncer de mama puede detectarse antes de que produzca síntomas?', options: yesNoUnknown },
+      { id: 'con5', text: '¿Quién puede desarrollar cáncer de mama?', input: 'text' },
+      { id: 'con6', text: '¿Una mujer puede tener cáncer de mama aunque no sienta dolor ni tenga molestias?', options: yesNoUnknown },
+      { id: 'con7', text: '¿Tener una madre, hermana o hija con cáncer de mama puede aumentar el riesgo de padecerlo?', options: yesNoUnknown },
+      { id: 'con8', text: '¿Una mujer sin antecedentes familiares puede desarrollar cáncer de mama?', options: yesNoUnknown },
+    ],
+  },
+  {
+    id: 'quimica',
+    title: 'Resultados de química sanguínea',
+    description: 'La captura el personal con los resultados del laboratorio. Deje vacío lo que no se haya realizado.',
+    staffOnly: true,
+    questions: [
+      { id: 'qs1', text: 'Glucosa (mg/dL)', input: 'number' },
+      { id: 'qs2', text: 'Creatinina (mg/dL)', input: 'number', hint: 'Función renal.' },
+      { id: 'qs3', text: 'Urea (mg/dL)', input: 'number', hint: 'Función renal.' },
+      { id: 'qs4', text: 'Nitrógeno ureico en sangre (BUN) (mg/dL)', input: 'number', hint: 'Función renal.' },
+      { id: 'qs5', text: 'Colesterol total (mg/dL)', input: 'number' },
+      { id: 'qs6', text: 'Triglicéridos (mg/dL)', input: 'number' },
+      { id: 'qs7', text: 'Colesterol HDL (mg/dL)', input: 'number' },
+      { id: 'qs8', text: 'Colesterol LDL (mg/dL)', input: 'number' },
+      { id: 'qs9', text: 'Ácido úrico (mg/dL)', input: 'number' },
+      { id: 'qs10', text: 'TGO / AST (U/L)', input: 'number', hint: 'Función hepática (opcional).' },
+      { id: 'qs11', text: 'TGP / ALT (U/L)', input: 'number', hint: 'Función hepática (opcional).' },
+      { id: 'qs12', text: 'Bilirrubina total (mg/dL)', input: 'number', hint: 'Función hepática (opcional).' },
     ],
   },
 ]
+
+/** Lo que contesta la paciente desde el portal (sin las secciones que captura el personal). */
+export const patientSurveySections = psychoSurvey.filter((section) => !section.staffOnly)
 
 export const psychoSurveyQuestions = psychoSurvey.flatMap((section) => section.questions)
 export const otherKey = (questionId: string) => `${questionId}__otro`

@@ -19,6 +19,20 @@ function QuestionResult({ question, number, surveys }: { question: SurveyQuestio
   const values = surveys.map((s) => s.answers[question.id]).filter((v): v is string => !!v)
   const answered = values.length
 
+  if (!question.options && question.input === 'text') {
+    return (
+      <li className="py-4">
+        <p className="text-[14px] font-medium">{number}. {question.text}</p>
+        <p className="mt-0.5 text-[12px] text-subtle">{answered} de {surveys.length} contestaron</p>
+        {answered > 0 && (
+          <ul className="mt-2 list-disc space-y-1 pl-5 text-[13px] text-muted-foreground">
+            {values.map((value, i) => <li key={i}>{value}</li>)}
+          </ul>
+        )}
+      </li>
+    )
+  }
+
   if (!question.options) {
     const numbers = values.map(Number).filter(Number.isFinite).sort((a, b) => a - b)
     const mean = numbers.length ? numbers.reduce((sum, n) => sum + n, 0) / numbers.length : undefined

@@ -6,6 +6,7 @@ import { PageHeader } from '@/components/ui/page-header'
 import { formatDateTime } from '@/lib/format'
 import { requirePortalViewer } from '@/modules/auth/session'
 import { getPortalPsychoSurvey } from '@/modules/oncology/data'
+import { patientSurveySections } from '@/modules/oncology/psycho-survey'
 import { PortalPsychoSurveyForm, PsychoSurveyAnswers } from '@/modules/oncology/components/psycho-survey-form'
 
 export const metadata = { title: 'Encuesta' }
@@ -29,7 +30,7 @@ export default async function PortalSurveyPage() {
             </p>
           </div>
         </Card>
-        <PsychoSurveyAnswers survey={survey} />
+        <PsychoSurveyAnswers survey={survey} sections={patientSurveySections} />
       </>
     )
   }

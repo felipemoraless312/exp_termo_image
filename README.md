@@ -118,7 +118,7 @@ No es necesario detener los servidores para importar.
 | Agenda de la campaña de mama | `/sistema/campana` (llegada, termografía, avisos, lista para imprimir) |
 | Encuesta de psico-oncología | Botón **Encuesta** en la pestaña Oncología o en la agenda → `/sistema/pacientes/<id>/encuesta` |
 | Resultados agregados de la encuesta | `/sistema/campana/encuesta` (por campaña o todas) |
-| Preguntas de la encuesta | `modules/oncology/psycho-survey.ts` (transcritas de `encuesta_psico.doc`) |
+| Preguntas de la encuesta | `modules/oncology/psycho-survey.ts` (transcritas de `encuesta_psico.doc`; versión 2 con las preguntas de `nueva_encuesta.xlsx`) |
 | Documentación interactiva de la API | `http://127.0.0.1:8000/docs` (las peticiones requieren la cabecera `X-API-Key`) |
 | Base de datos | `api/data/medora.db` |
 | Imágenes térmicas | `api/data/archivos/<id del paciente>/` |

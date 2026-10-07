@@ -20,7 +20,7 @@ export async function submitOwnPsychoSurvey(_: ActionState, formData: FormData):
   let done = false
   const result = await runAction(formData, async (form) => {
     const patient = await requirePatient()
-    const answers = readPsychoSurveyAnswers(form)
+    const answers = readPsychoSurveyAnswers(form, 'patient')
     const [chart, surveys] = await Promise.all([repository.findOncologyChart(patient.id), repository.listPatientSurveys(patient.id)])
     const appointment = chart?.appointments.find((a) => a.status !== 'cancelada' && a.status !== 'no-asistio')
     if (surveys.some((s) => s.kind === PSYCHO_SURVEY_KIND && s.campaignId === appointment?.campaign.id)) reject('Ya contestaste esta encuesta. ¡Gracias!')

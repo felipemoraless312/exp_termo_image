@@ -4,12 +4,19 @@ import { Field, FieldGrid, Input, Select } from '@/components/ui/field'
 import { formatDate } from '@/lib/format'
 import { savePsychoSurvey } from '../actions'
 import { submitOwnPsychoSurvey } from '../portal-actions'
-import { otherKey, psychoSurvey, type SurveyQuestion, type SurveyResponse } from '../psycho-survey'
+import { otherKey, patientSurveySections, psychoSurvey, type SurveyQuestion, type SurveyResponse, type SurveySection } from '../psycho-survey'
 import { visitLabels, visits, type Campaign, type Visit } from '../types'
 
 /** Opciones como botones grandes (radio nativo): cómodo en tablet y sin JavaScript. */
 function Question({ question, number }: { question: SurveyQuestion; number: number }) {
   const label = `${number}. ${question.text}`
+  if (!question.options && question.input === 'text') {
+    return (
+      <Field label={label} hint={question.hint}>
+        <Input name={question.id} maxLength={300} className="max-w-xl" autoComplete="off" />
+      </Field>
+    )
+  }
   if (!question.options) {
     return (
       <Field label={label} hint={question.hint}>
@@ -37,10 +44,11 @@ function Question({ question, number }: { question: SurveyQuestion; number: numb
   )
 }
 
-function SurveySections() {
-  return psychoSurvey.map((section) => (
+function SurveySections({ sections }: { sections: SurveySection[] }) {
+  return sections.map((section) => (
     <Card key={section.id} className="p-5 sm:p-7">
       <h2 className="text-title-3">{section.title}</h2>
+      {section.description && <p className="mt-1 text-[13px] text-subtle">{section.description}</p>}
       <div className="mt-6 space-y-7">
         {section.questions.map((question, i) => <Question key={question.id} question={question} number={i + 1} />)}
       </div>
@@ -52,18 +60,18 @@ function SurveySections() {
 export function PortalPsychoSurveyForm() {
   return (
     <ActionForm action={submitOwnPsychoSurvey} submitLabel="Enviar mis respuestas" pendingLabel="Enviando…" cancel={false} className="space-y-6">
-      <SurveySections />
+      <SurveySections sections={patientSurveySections} />
       <p className="px-1 text-[13px] leading-5 text-subtle">Puedes dejar preguntas sin contestar. Si no sabes la respuesta, no te preocupes: marca “No sabe”.</p>
     </ActionForm>
   )
 }
 
 /** Respuestas de una encuesta ya contestada, en el mismo orden del cuestionario. */
-export function PsychoSurveyAnswers({ survey }: { survey: Pick<SurveyResponse, 'answers'> }) {
+export function PsychoSurveyAnswers({ survey, sections = psychoSurvey }: { survey: Pick<SurveyResponse, 'answers'>; sections?: SurveySection[] }) {
   const { answers } = survey
   return (
     <div className="space-y-4">
-      {psychoSurvey.map((section) => (
+      {sections.map((section) => (
         <Card key={section.id} className="p-5 sm:p-7">
           <h2 className="text-title-3">{section.title}</h2>
           <ol className="mt-4 divide-y divide-separator">
@@ -101,7 +109,7 @@ export function PsychoSurveyForm({ patientId, campaigns, campaignId, visit }: { 
           </Field>
         </FieldGrid>
       </Card>
-      <SurveySections />
+      <SurveySections sections={psychoSurvey} />
       <p className="px-1 text-[13px] leading-5 text-subtle">Las preguntas sin respuesta se guardan como no contestadas. Si no sabe la respuesta, marque “No sabe”.</p>
     </ActionForm>
   )
