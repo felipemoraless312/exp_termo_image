@@ -44,7 +44,7 @@ export default async function PortalHomePage() {
             <ClipboardList size={22} className="mt-0.5 shrink-0 text-accent-foreground" aria-hidden="true" />
             <div>
               <h2 className="font-semibold">Contesta tu encuesta</h2>
-              <p className="mt-1 text-[14px] leading-6 text-muted-foreground">Unas preguntas sobre la prevención del cáncer de mama y de cérvix. Toma unos 10 minutos y nos ayuda mucho.</p>
+              <p className="mt-1 text-[14px] leading-6 text-muted-foreground">Unas preguntas sobre la prevención del cáncer de mama. Toma unos 10 minutos y nos ayuda mucho.</p>
             </div>
           </div>
           <Link href="/portal/encuesta" className={buttonVariants({ className: 'shrink-0' })}>Contestar</Link>

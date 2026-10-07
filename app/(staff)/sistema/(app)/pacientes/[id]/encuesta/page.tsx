@@ -25,7 +25,7 @@ export default async function NewPsychoSurveyPage({ params }: PageProps<'/sistem
       <PageHeader
         eyebrow={`${patient.record} · ${ageFrom(patient.birthDate)} años`}
         title="Encuesta de psico-oncología"
-        description="Conocimiento sobre la prevención del cáncer de mama y de cérvix. Si no sabe la respuesta, no se preocupe: marque “No sabe”."
+        description="Conocimiento sobre la prevención del cáncer de mama. Si no sabe la respuesta, no se preocupe: marque “No sabe”."
       />
       <PsychoSurveyForm patientId={patient.id} curp={patient.curp} campaigns={campaigns} campaignId={appointment?.campaign.id} visit={appointment?.visit} />
     </>
