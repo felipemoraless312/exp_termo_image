@@ -1,0 +1,357 @@
+import 'server-only'
+
+import { collection, seedFolio } from '@/lib/server/memory'
+import { sealNote } from './signature'
+import type { ClinicalNote, ClinicalRecord, Patient } from './types'
+
+/*
+ * Acceso crudo a los datos, sin autorización.
+ * DEMO: datos ficticios en memoria. En la fase 2 estas funciones consultan Postgres (Drizzle)
+ * y siempre filtran por `clinic_id`. Solo `data.ts`, `actions.ts` y `auth/session.ts` deben importar este archivo.
+ */
+
+const doctor = 'Dr. Francisco Ramos'
+const doctorLicense = 'Céd. prof. 1234567 · Esp. 7654321'
+const nurse = 'Ana López'
+
+function signed(note: Omit<ClinicalNote, 'signature' | 'addenda' | 'authorRole' | 'author' | 'authorLicense'> & { author?: string; nursing?: boolean }): ClinicalNote {
+  const base = {
+    ...note,
+    author: note.author ?? (note.nursing ? nurse : doctor),
+    authorRole: note.nursing ? 'Enfermería' : 'Médico',
+    authorLicense: note.nursing ? 'Céd. prof. 9876543' : doctorLicense,
+  }
+  delete (base as { nursing?: boolean }).nursing
+  return { ...base, signature: { at: note.createdAt, hash: sealNote(base, note.createdAt) }, addenda: [] }
+}
+
+function seedPatients(): Patient[] {
+  return [
+    {
+      id: '1', record: 'EXP-000123', name: 'Juan Pérez López', firstName: 'Juan', lastName: 'Pérez', secondLastName: 'López',
+      curp: 'PELJ810415HDFRPN09', birthDate: '1981-04-15', birthPlace: 'Ciudad de México', sex: 'hombre', maritalStatus: 'Casado(a)',
+      occupation: 'Contador', education: 'Licenciatura', phone: '55 4182 7063', email: 'juan.perez@correo.mx',
+      address: { street: 'Av. Coyoacán 1435, int. 4', neighborhood: 'Del Valle', municipality: 'Benito Juárez', state: 'Ciudad de México', zip: '03100' },
+      insurance: { type: 'Seguro de gastos médicos', policy: 'GMM-55021984' },
+      emergencyContact: { name: 'Elena López', relationship: 'Cónyuge', phone: '55 4182 7064' },
+      bloodType: 'O+', status: 'seguimiento', photo: '/demo/patient-1.jpg', allergies: [], createdAt: '2026-08-16T15:30:00.000Z',
+    },
+    {
+      id: '2', record: 'EXP-000124', name: 'María López García', firstName: 'María', lastName: 'López', secondLastName: 'García',
+      curp: 'LOGM880209MDFPRR04', birthDate: '1988-02-09', birthPlace: 'Puebla', sex: 'mujer', maritalStatus: 'Soltero(a)',
+      occupation: 'Docente', education: 'Posgrado', phone: '55 2901 6450', email: 'maria.lopez@correo.mx',
+      address: { street: 'Calle Uxmal 88', neighborhood: 'Narvarte', municipality: 'Benito Juárez', state: 'Ciudad de México', zip: '03020' },
+      insurance: { type: 'ISSSTE', policy: 'LOGM880209' },
+      emergencyContact: { name: 'Rosa García', relationship: 'Padre o madre', phone: '55 2901 6451' },
+      bloodType: 'A+', status: 'activo', photo: '/demo/patient-2.jpg',
+      allergies: [{ id: 'al-1', agent: 'Penicilina', kind: 'medicamento', reaction: 'Urticaria generalizada y angioedema palpebral', severity: 'grave', recordedAt: '2026-09-25' }],
+      createdAt: '2026-09-25T16:00:00.000Z',
+    },
+    {
+      id: '3', record: 'EXP-000119', name: 'Carlos Hernández Ruiz', firstName: 'Carlos', lastName: 'Hernández', secondLastName: 'Ruiz',
+      curp: 'HERC740622HCSRZR02', birthDate: '1974-06-22', birthPlace: 'Tuxtla Gutiérrez, Chiapas', sex: 'hombre', maritalStatus: 'Casado(a)',
+      occupation: 'Comerciante', education: 'Bachillerato', phone: '55 3670 1182', email: 'carlos.hernandez@correo.mx',
+      address: { street: 'Calle Tepeji 21', neighborhood: 'Roma Sur', municipality: 'Cuauhtémoc', state: 'Ciudad de México', zip: '06760' },
+      insurance: { type: 'IMSS', policy: '0174-74-1234-5' },
+      emergencyContact: { name: 'Marta Hernández', relationship: 'Cónyuge', phone: '55 3670 1183' },
+      bloodType: 'B+', status: 'seguimiento', photo: '/demo/patient-3.jpg',
+      allergies: [{ id: 'al-2', agent: 'Látex', kind: 'latex', reaction: 'Dermatitis de contacto', severity: 'moderada', recordedAt: '2023-03-02' }],
+      createdAt: '2023-03-02T17:00:00.000Z',
+    },
+    {
+      id: '4', record: 'EXP-000131', name: 'Ana García Torres', firstName: 'Ana', lastName: 'García', secondLastName: 'Torres',
+      curp: 'GATA590311MCSRRN01', birthDate: '1959-03-11', birthPlace: 'San Cristóbal de las Casas, Chiapas', sex: 'mujer', maritalStatus: 'Viudo(a)',
+      occupation: 'Jubilada', education: 'Secundaria', religion: 'Católica', phone: '961 245 8812',
+      address: { street: '3a. Norte Poniente 1220', neighborhood: 'Centro', municipality: 'Tuxtla Gutiérrez', state: 'Chiapas', zip: '29000' },
+      insurance: { type: 'Particular' },
+      emergencyContact: { name: 'Lucía Torres García', relationship: 'Hijo o hija', phone: '961 245 8813' },
+      legalGuardian: { name: 'Lucía Torres García', relationship: 'Hija', phone: '961 245 8813' },
+      bloodType: 'O-', status: 'activo',
+      allergies: [{ id: 'al-3', agent: 'Ácido acetilsalicílico', kind: 'medicamento', reaction: 'Broncoespasmo', severity: 'grave', recordedAt: '2019-06-10' }],
+      createdAt: '2026-10-01T15:00:00.000Z',
+    },
+    {
+      id: '5', record: 'EXP-000132', name: 'Héctor López Díaz', firstName: 'Héctor', lastName: 'López', secondLastName: 'Díaz',
+      birthDate: '1966-12-02', sex: 'hombre', maritalStatus: 'Casado(a)', occupation: 'Ingeniero civil', education: 'Licenciatura',
+      phone: '961 102 4477', email: 'hector.lopez@correo.mx',
+      address: { street: 'Blvd. Belisario Domínguez 1850', neighborhood: 'Moctezuma', municipality: 'Tuxtla Gutiérrez', state: 'Chiapas', zip: '29030' },
+      insurance: { type: 'Particular' },
+      emergencyContact: { name: 'Gabriela Ruiz', relationship: 'Cónyuge', phone: '961 102 4478' },
+      bloodType: 'A-', status: 'activo', allergies: [], createdAt: '2026-10-01T16:00:00.000Z',
+    },
+  ]
+}
+
+function seedRecords(): Record<string, ClinicalRecord> {
+  return {
+    '1': {
+      patientId: '1',
+      history: {
+        family: [
+          { id: 'fh-1', relative: 'Madre', condition: 'Diabetes mellitus', notes: 'Diagnosticada a los 52 años' },
+          { id: 'fh-2', relative: 'Padre', condition: 'Hipertensión arterial' },
+        ],
+        surgeries: [{ id: 'sx-1', procedure: 'Apendicectomía abierta', date: '2010-05-12', hospital: 'Hospital General de México', complications: 'Sin complicaciones' }],
+        hospitalizations: [{ id: 'hz-1', reason: 'Apendicitis aguda', date: '2010-05-11', days: 3 }],
+        transfusions: 'Niega transfusiones.',
+        traumas: 'Esguince de tobillo derecho (2015).',
+        nonPathological: { smoking: 'nunca', alcohol: 'ocasional', alcoholDetail: '2 a 3 copas al mes', drugs: 'Niega', physicalActivity: 'Ciclismo 2 veces por semana', diet: 'Comidas irregulares, consumo frecuente de café y picante', sleep: '6 horas', housing: 'Urbana, todos los servicios', zoonosis: 'Un perro vacunado' },
+        immunizations: [
+          { id: 'im-1', vaccine: 'Influenza estacional', dose: 'Anual', date: '2025-11-03' },
+          { id: 'im-2', vaccine: 'COVID-19', dose: 'Refuerzo', date: '2024-10-20' },
+          { id: 'im-3', vaccine: 'Td (tétanos y difteria)', dose: 'Refuerzo', date: '2021-02-14' },
+        ],
+      },
+      problems: [
+        { id: 'pr-1', code: 'K21.0', description: 'Enfermedad del reflujo gastroesofágico con esofagitis', kind: 'cronico', status: 'activo', since: '2026-08-16', notes: 'Esofagitis grado A de Los Ángeles' },
+        { id: 'pr-2', code: 'E66.9', description: 'Obesidad, no especificada', kind: 'cronico', status: 'activo', since: '2026-08-16', notes: 'IMC 25.8, sobrepeso; meta de reducción de 5 %' },
+      ],
+      vitals: [
+        { id: 'vs-1', takenAt: '2026-08-16T15:10:00.000Z', systolic: 132, diastolic: 84, heartRate: 78, respiratoryRate: 16, temperature: 36.5, spo2: 98, onOxygen: false, consciousness: 'A', weight: 80, height: 1.74, pain: 3, recordedBy: nurse },
+        { id: 'vs-2', takenAt: '2026-09-27T15:50:00.000Z', systolic: 128, diastolic: 82, heartRate: 74, respiratoryRate: 15, temperature: 36.6, spo2: 98, onOxygen: false, consciousness: 'A', glucose: 96, weight: 78, height: 1.74, pain: 1, recordedBy: nurse },
+      ],
+      medications: [
+        { id: 'rx-1', name: 'Omeprazol 20 mg cápsulas', dose: '20 mg', route: 'Oral', frequency: 'Cada 24 horas', duration: '8 semanas', quantity: 4, instructions: 'Tomar 30 minutos antes del desayuno', startDate: '2026-09-27', status: 'activo', prescribedBy: doctor, prescriptionFolio: 'REC-0348' },
+        { id: 'rx-2', name: 'Alginato de sodio suspensión', dose: '10 ml', route: 'Oral', frequency: 'Por razón necesaria (PRN)', duration: '4 semanas', startDate: '2026-08-16', status: 'concluido', prescribedBy: doctor, prescriptionFolio: 'REC-0290' },
+      ],
+      notes: [
+        signed({
+          id: 'nt-1', type: 'historia-clinica', createdAt: '2026-08-16T15:40:00.000Z', vitalsId: 'vs-1',
+          sections: {
+            motivo: 'Pirosis y regurgitación de tres meses de evolución.',
+            padecimiento: 'Inicia hace 3 meses con pirosis retroesternal posprandial, predominio nocturno, 4 a 5 veces por semana, acompañada de regurgitación ácida. Mejoría parcial con antiácidos. Niega disfagia, odinofagia, pérdida de peso, hematemesis o melena.',
+            aparatos: 'Digestivo: lo referido. Respiratorio: tos seca nocturna ocasional. Resto interrogado y negado.',
+            exploracion: 'Consciente, orientado, buena coloración e hidratación. Cuello sin adenomegalias. Ruidos cardiacos rítmicos, campos pulmonares bien ventilados. Abdomen blando, depresible, dolor leve a la palpación en epigastrio, sin visceromegalias, peristalsis normal. Extremidades sin edema.',
+            estudios: 'Sin estudios previos.',
+            plan: 'Panendoscopía diagnóstica. Biometría hemática y química sanguínea. Medidas higiénico-dietéticas: cenar 3 horas antes de acostarse, elevar cabecera, evitar café, alcohol y picante. Alginato de sodio por razón necesaria.',
+          },
+          diagnoses: [{ code: 'K21.9', description: 'Enfermedad del reflujo gastroesofágico sin esofagitis' }, { code: 'R12', description: 'Acidez (pirosis)' }],
+          prognosis: 'Bueno para la vida y para la función',
+        }),
+        signed({
+          id: 'nt-2', type: 'evolucion', createdAt: '2026-09-27T16:05:00.000Z', vitalsId: 'vs-2',
+          sections: {
+            subjetivo: 'Refiere pirosis ocasional, 1 a 2 veces por semana, con mejoría parcial. Apego parcial a medidas dietéticas.',
+            objetivo: 'Abdomen sin dolor a la palpación. Panendoscopía (27/09/2026): esofagitis grado A de Los Ángeles, sin Barrett. Manometría: motilidad normal.',
+            analisis: 'ERGE con esofagitis leve confirmada por endoscopía. Respuesta parcial a medidas generales; requiere inhibidor de bomba de protones.',
+            plan: 'Omeprazol 20 mg cada 24 h antes del desayuno por 8 semanas. Reforzar medidas higiénico-dietéticas y reducción de peso. Control en 8 semanas.',
+          },
+          diagnoses: [{ code: 'K21.0', description: 'Enfermedad del reflujo gastroesofágico con esofagitis' }],
+          prognosis: 'Bueno para la vida y para la función',
+        }),
+      ],
+      studies: [
+        { id: 's-101', folio: 'EST-0101', name: 'Panendoscopía', category: 'endoscopia', priority: 'rutina', status: 'resultado', orderedAt: '2026-08-16T15:40:00.000Z', orderedBy: doctor, indication: 'Pirosis crónica', releasedToPatient: true, result: { at: '2026-09-27T14:00:00.000Z', summary: 'Esofagitis grado A de Los Ángeles. Unión esofagogástrica a 39 cm. Estómago y duodeno sin alteraciones. Sin datos de esófago de Barrett.', values: [], reportedBy: doctor } },
+        { id: 's-102', folio: 'EST-0102', name: 'Manometría esofágica de alta resolución', category: 'gabinete', priority: 'rutina', status: 'resultado', orderedAt: '2026-08-16T15:40:00.000Z', orderedBy: doctor, releasedToPatient: true, result: { at: '2026-09-18T16:00:00.000Z', summary: 'Motilidad esofágica dentro de parámetros normales (Chicago v4.0).', values: [], reportedBy: doctor } },
+        {
+          id: 's-103', folio: 'EST-0103', name: 'Biometría hemática', category: 'laboratorio', priority: 'rutina', status: 'resultado', orderedAt: '2026-08-16T15:40:00.000Z', orderedBy: doctor, releasedToPatient: true,
+          result: {
+            at: '2026-08-04T18:00:00.000Z', summary: 'Sin alteraciones.', reportedBy: 'Laboratorio clínico',
+            values: [
+              { analyte: 'Hemoglobina', value: '15.2', unit: 'g/dL', range: '13.5 – 17.5' },
+              { analyte: 'Hematocrito', value: '45', unit: '%', range: '41 – 53' },
+              { analyte: 'Leucocitos', value: '7.1', unit: '10³/µL', range: '4.5 – 11.0' },
+              { analyte: 'Plaquetas', value: '265', unit: '10³/µL', range: '150 – 450' },
+            ],
+          },
+        },
+        { id: 's-104', folio: 'EST-0104', name: 'Ultrasonido abdominal', category: 'imagen', priority: 'rutina', status: 'en-proceso', orderedAt: '2026-09-27T16:05:00.000Z', orderedBy: doctor, indication: 'Descartar litiasis vesicular', releasedToPatient: false },
+      ],
+      devices: [],
+      consents: [
+        { id: 'ci-1', procedure: 'Panendoscopía diagnóstica con sedación', risks: 'Perforación (<0.1 %), sangrado, reacción a la sedación, broncoaspiración.', benefits: 'Diagnóstico de la causa de los síntomas y toma de biopsias si se requiere.', alternatives: 'Serie esofagogastroduodenal; tratamiento empírico.', signedAt: '2026-08-16T15:45:00.000Z', signer: 'paciente', signerName: 'Juan Pérez López', witnesses: ['Elena López', 'Ana López'], physician: doctor, status: 'vigente' },
+      ],
+      documents: [
+        { id: 'd-101', name: 'Receta_REC-0348.pdf', kind: 'Receta', date: '2026-09-27' },
+        { id: 'd-102', name: 'Reporte_panendoscopia.pdf', kind: 'Reporte de estudio', date: '2026-09-27' },
+        { id: 'd-103', name: 'Laboratorios_agosto_2026.pdf', kind: 'Laboratorio', date: '2026-08-04' },
+      ],
+    },
+    '2': {
+      patientId: '2',
+      history: {
+        family: [{ id: 'fh-3', relative: 'Padre', condition: 'Cáncer gástrico', notes: 'Diagnosticado a los 61 años' }],
+        surgeries: [],
+        hospitalizations: [],
+        transfusions: 'Niega.',
+        nonPathological: { smoking: 'nunca', alcohol: 'no', drugs: 'Niega', physicalActivity: 'Caminata ocasional', diet: 'Balanceada' },
+        gynecoObstetric: { menarche: 12, cycles: '28 × 5, regulares', lastMenstrualPeriod: '2026-09-14', sexualOnset: 21, pregnancies: 0, births: 0, cesareans: 0, abortions: 0, contraception: 'Preservativo', lastPap: '2025-11-10' },
+        immunizations: [{ id: 'im-4', vaccine: 'VPH', dose: 'Esquema completo', date: '2012-03-01' }, { id: 'im-5', vaccine: 'Influenza estacional', dose: 'Anual', date: '2025-10-28' }],
+      },
+      problems: [{ id: 'pr-3', code: 'K30', description: 'Dispepsia funcional', kind: 'agudo', status: 'activo', since: '2026-09-25', notes: 'En estudio; antecedente familiar de cáncer gástrico' }],
+      vitals: [
+        { id: 'vs-3', takenAt: '2026-09-25T16:10:00.000Z', systolic: 116, diastolic: 74, heartRate: 78, respiratoryRate: 16, temperature: 36.7, spo2: 99, onOxygen: false, consciousness: 'A', weight: 62, height: 1.62, pain: 4, recordedBy: nurse },
+      ],
+      medications: [
+        { id: 'rx-3', name: 'Butilhioscina 10 mg tabletas', dose: '10 mg', route: 'Oral', frequency: 'Cada 8 horas', duration: '5 días', quantity: 1, instructions: 'Solo si presenta cólico', startDate: '2026-09-25', status: 'activo', prescribedBy: doctor, prescriptionFolio: 'REC-0346' },
+      ],
+      notes: [
+        signed({
+          id: 'nt-3', type: 'historia-clinica', createdAt: '2026-09-25T16:30:00.000Z', vitalsId: 'vs-3',
+          sections: {
+            motivo: 'Dolor epigástrico intermitente.',
+            padecimiento: 'Dolor epigástrico urente de 2 meses de evolución, intensidad 4/10, relacionado con alimentos, sin irradiación. Plenitud posprandial. Niega pérdida de peso, vómito o sangrado.',
+            exploracion: 'Buen estado general. Abdomen blando, dolor leve en epigastrio sin rebote. Sin masas ni visceromegalias.',
+            plan: 'Perfil hepático, antígeno de H. pylori en heces. Panendoscopía por antecedente familiar de cáncer gástrico. Butilhioscina por razón necesaria.',
+          },
+          diagnoses: [{ code: 'K30', description: 'Dispepsia funcional' }],
+          prognosis: 'Bueno para la vida y para la función',
+        }),
+      ],
+      studies: [
+        { id: 's-201', folio: 'EST-0201', name: 'Perfil hepático', category: 'laboratorio', priority: 'rutina', status: 'solicitado', orderedAt: '2026-09-25T16:30:00.000Z', orderedBy: doctor, releasedToPatient: false },
+        { id: 's-202', folio: 'EST-0202', name: 'Antígeno de H. pylori en heces', category: 'laboratorio', priority: 'rutina', status: 'solicitado', orderedAt: '2026-09-25T16:30:00.000Z', orderedBy: doctor, releasedToPatient: false },
+      ],
+      devices: [],
+      consents: [],
+      documents: [{ id: 'd-201', name: 'Solicitud_estudios.pdf', kind: 'Solicitud', date: '2026-09-25' }],
+    },
+    '3': {
+      patientId: '3',
+      history: {
+        family: [{ id: 'fh-4', relative: 'Madre', condition: 'Hipertensión arterial' }],
+        surgeries: [{ id: 'sx-2', procedure: 'Colecistectomía laparoscópica', date: '2018-04-20', hospital: 'Hospital Regional de Tuxtla' }],
+        hospitalizations: [{ id: 'hz-2', reason: 'Colecistitis aguda', date: '2018-04-19', days: 2 }],
+        transfusions: 'Niega.',
+        nonPathological: { smoking: 'exfumador', cigarettesPerDay: 10, smokingYears: 20, alcohol: 'ocasional', drugs: 'Niega', physicalActivity: 'Sedentario', diet: 'Alta en grasas' },
+        immunizations: [{ id: 'im-6', vaccine: 'Neumocócica polisacárida 23', dose: 'Única', date: '2024-09-02' }],
+      },
+      problems: [
+        { id: 'pr-4', code: 'K29.5', description: 'Gastritis crónica, no especificada', kind: 'cronico', status: 'controlado', since: '2023-03-02' },
+        { id: 'pr-5', code: 'I10', description: 'Hipertensión esencial (primaria)', kind: 'cronico', status: 'controlado', since: '2020-01-15', notes: 'Manejo con losartán' },
+      ],
+      vitals: [
+        { id: 'vs-4', takenAt: '2026-09-18T15:00:00.000Z', systolic: 132, diastolic: 84, heartRate: 72, respiratoryRate: 16, temperature: 36.5, spo2: 97, onOxygen: false, consciousness: 'A', weight: 84, height: 1.76, recordedBy: nurse },
+      ],
+      medications: [
+        { id: 'rx-4', name: 'Pantoprazol 40 mg tabletas', dose: '40 mg', route: 'Oral', frequency: 'Cada 24 horas', duration: '4 semanas', quantity: 2, startDate: '2026-09-18', status: 'activo', prescribedBy: doctor, prescriptionFolio: 'REC-0347' },
+        { id: 'rx-5', name: 'Losartán 50 mg tabletas', dose: '50 mg', route: 'Oral', frequency: 'Cada 24 horas', duration: 'Indefinido', quantity: 1, startDate: '2020-01-15', status: 'activo', prescribedBy: 'Dra. Patricia Solís (Cardiología)', prescriptionFolio: 'REC-0102' },
+      ],
+      notes: [
+        signed({
+          id: 'nt-4', type: 'evolucion', createdAt: '2026-09-18T15:20:00.000Z', vitalsId: 'vs-4',
+          sections: {
+            subjetivo: 'Refiere mejoría del dolor epigástrico. Niega sangrado digestivo.',
+            objetivo: 'TA 132/84 mmHg. Abdomen sin dolor. Endoscopía previa: gastritis crónica.',
+            plan: 'Pantoprazol 40 mg cada 24 h por 4 semanas. Control de presión arterial con cardiología. Seguimiento clínico.',
+          },
+          diagnoses: [{ code: 'K29.5', description: 'Gastritis crónica, no especificada' }, { code: 'I10', description: 'Hipertensión esencial (primaria)' }],
+          prognosis: 'Bueno para la vida y para la función',
+        }),
+        signed({
+          id: 'nt-5', type: 'enfermeria', createdAt: '2026-09-18T14:55:00.000Z', nursing: true, vitalsId: 'vs-4',
+          sections: { valoracion: 'Paciente consciente, orientado, deambula sin apoyo.', cuidados: 'Toma de signos vitales y somatometría. Se refuerza educación sobre toma de antihipertensivo.', riesgos: 'Downton 1 (riesgo bajo de caídas).' },
+          diagnoses: [],
+        }),
+      ],
+      studies: [
+        { id: 's-301', folio: 'EST-0301', name: 'Panendoscopía', category: 'endoscopia', priority: 'rutina', status: 'resultado', orderedAt: '2026-07-01T15:00:00.000Z', orderedBy: doctor, releasedToPatient: true, result: { at: '2026-07-12T15:00:00.000Z', summary: 'Gastritis crónica antral. Biopsias: gastritis crónica sin H. pylori.', values: [], reportedBy: doctor } },
+      ],
+      devices: [{ id: 'dv-1', type: 'Clip quirúrgico', brand: 'Ethicon', model: 'Ligaclip', site: 'Lecho vesicular', implantedAt: '2018-04-20', mriSafety: 'segura', notes: 'Clips de titanio de la colecistectomía' }],
+      consents: [],
+      documents: [{ id: 'd-301', name: 'Reporte_endoscopia.pdf', kind: 'Reporte de estudio', date: '2026-07-12' }],
+    },
+    '4': {
+      patientId: '4',
+      history: {
+        family: [{ id: 'fh-5', relative: 'Padre', condition: 'Cardiopatía isquémica' }, { id: 'fh-6', relative: 'Hermano(a)', condition: 'Diabetes mellitus' }],
+        surgeries: [{ id: 'sx-3', procedure: 'Implante de marcapasos bicameral', date: '2021-08-09', hospital: 'Hospital de Especialidades Vida Mejor' }],
+        hospitalizations: [{ id: 'hz-3', reason: 'Bloqueo auriculoventricular completo', date: '2021-08-07', days: 5 }],
+        transfusions: 'Una unidad de concentrado eritrocitario (2021), sin reacciones.',
+        nonPathological: { smoking: 'nunca', alcohol: 'no', drugs: 'Niega', physicalActivity: 'Caminata diaria 20 minutos', diet: 'Dieta para diabético' },
+        gynecoObstetric: { menarche: 13, pregnancies: 3, births: 2, cesareans: 1, abortions: 0, menopause: 50, lastMammography: '2025-04-03', lastPap: '2024-04-03' },
+        immunizations: [{ id: 'im-7', vaccine: 'Influenza estacional', dose: 'Anual', date: '2025-10-15' }, { id: 'im-8', vaccine: 'Herpes zóster', dose: '2 dosis', date: '2024-06-01' }],
+      },
+      problems: [
+        { id: 'pr-6', code: 'E11.9', description: 'Diabetes mellitus tipo 2 sin complicaciones', kind: 'cronico', status: 'activo', since: '2008-01-01' },
+        { id: 'pr-7', code: 'I10', description: 'Hipertensión esencial (primaria)', kind: 'cronico', status: 'controlado', since: '2012-01-01' },
+        { id: 'pr-8', code: 'Z95.0', description: 'Presencia de marcapaso cardiaco', kind: 'cronico', status: 'controlado', since: '2021-08-09' },
+      ],
+      vitals: [
+        { id: 'vs-5', takenAt: new Date(Date.now() - 45 * 60_000).toISOString(), systolic: 168, diastolic: 96, heartRate: 104, respiratoryRate: 22, temperature: 38.3, spo2: 93, onOxygen: false, consciousness: 'A', glucose: 212, weight: 71, height: 1.55, pain: 6, recordedBy: nurse, notes: 'Refiere dolor abdominal en hipocondrio derecho desde ayer.' },
+      ],
+      medications: [
+        { id: 'rx-6', name: 'Metformina 850 mg tabletas', dose: '850 mg', route: 'Oral', frequency: 'Cada 12 horas', duration: 'Indefinido', quantity: 2, startDate: '2008-01-01', status: 'activo', prescribedBy: 'Médico externo', prescriptionFolio: 'REC-0011' },
+        { id: 'rx-7', name: 'Losartán 50 mg tabletas', dose: '50 mg', route: 'Oral', frequency: 'Cada 24 horas', duration: 'Indefinido', quantity: 1, startDate: '2012-01-01', status: 'activo', prescribedBy: 'Médico externo', prescriptionFolio: 'REC-0012' },
+      ],
+      notes: [],
+      studies: [],
+      devices: [
+        { id: 'dv-2', type: 'Marcapasos', brand: 'Medtronic', model: 'Azure XT DR MRI SureScan', serial: 'RNB204518S', site: 'Subclavio izquierdo', implantedAt: '2021-08-09', mriSafety: 'condicional', notes: 'RM solo bajo protocolo y con reprogramación del dispositivo por cardiología.' },
+      ],
+      consents: [],
+      documents: [],
+    },
+    '5': {
+      patientId: '5',
+      history: { family: [], surgeries: [], hospitalizations: [], nonPathological: { smoking: 'actual', cigarettesPerDay: 15, smokingYears: 30, alcohol: 'frecuente', alcoholDetail: 'Fines de semana, 6 a 8 cervezas' }, immunizations: [] },
+      problems: [{ id: 'pr-9', code: 'Z12.1', description: 'Examen de pesquisa especial para tumor del tracto intestinal', kind: 'agudo', status: 'activo', since: '2026-10-01' }],
+      vitals: [],
+      medications: [],
+      notes: [],
+      studies: [{ id: 's-501', folio: 'EST-0501', name: 'Colonoscopía', category: 'endoscopia', priority: 'rutina', status: 'solicitado', orderedAt: '2026-10-01T16:30:00.000Z', orderedBy: doctor, indication: 'Tamizaje de cáncer colorrectal (> 50 años)', releasedToPatient: false }],
+      devices: [],
+      consents: [],
+      documents: [],
+    },
+  }
+}
+
+const patients = () => collection('patients', seedPatients)
+const records = () => collection('records', seedRecords)
+
+// Los folios nuevos continúan después de los sembrados.
+seedFolio('REC', 348)
+seedFolio('EST', 501)
+seedFolio('EXP', 132)
+
+export async function findPatientById(id: string): Promise<Patient | undefined> {
+  return patients().find((patient) => patient.id === id)
+}
+
+export async function findPatientByRecord(record: string): Promise<Patient | undefined> {
+  return patients().find((patient) => patient.record.toLowerCase() === record.trim().toLowerCase())
+}
+
+export async function findPatientByCurp(curp: string): Promise<Patient | undefined> {
+  return patients().find((patient) => patient.curp?.toUpperCase() === curp.toUpperCase())
+}
+
+// Ignora mayúsculas y acentos: "maria" encuentra "María".
+const normalize = (value: string) => value.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase()
+
+export async function searchPatients(query?: string): Promise<Patient[]> {
+  const term = query ? normalize(query.trim()) : ''
+  const list = [...patients()].sort((a, b) => a.name.localeCompare(b.name, 'es'))
+  if (!term) return list
+  return list.filter((patient) => [patient.name, patient.record, patient.phone, patient.curp ?? ''].some((value) => normalize(value).includes(term)))
+}
+
+export async function insertPatient(patient: Patient): Promise<void> {
+  patients().push(patient)
+  records()[patient.id] = {
+    patientId: patient.id,
+    history: { family: [], surgeries: [], hospitalizations: [], nonPathological: { smoking: 'nunca', alcohol: 'no' }, immunizations: [] },
+    problems: [], vitals: [], medications: [], notes: [], studies: [], devices: [], consents: [], documents: [],
+  }
+}
+
+export async function updatePatient(id: string, update: (patient: Patient) => void): Promise<Patient | undefined> {
+  const patient = patients().find((p) => p.id === id)
+  if (patient) update(patient)
+  return patient
+}
+
+export async function findRecordByPatientId(patientId: string): Promise<ClinicalRecord | undefined> {
+  return records()[patientId]
+}
+
+export async function updateRecord(patientId: string, update: (record: ClinicalRecord) => void): Promise<ClinicalRecord | undefined> {
+  const record = records()[patientId]
+  if (record) update(record)
+  return record
+}
+
+export async function listRecords(): Promise<ClinicalRecord[]> {
+  return Object.values(records())
+}

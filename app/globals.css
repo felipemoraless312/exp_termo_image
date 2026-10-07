@@ -1,0 +1,537 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+@import 'shadcn/tailwind.css';
+
+/*
+ * Sistema de diseño Medora
+ * Todos los colores, radios y sombras salen de estos tokens.
+ * Para cambiar la marca basta con editar --primary y --accent-*.
+ */
+
+@custom-variant dark (@media (prefers-color-scheme: dark));
+
+@theme inline {
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--foreground);
+  --color-popover: var(--card);
+  --color-popover-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-subtle: var(--subtle);
+  --color-border: var(--border);
+  --color-separator: var(--separator);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-secondary: var(--muted);
+  --color-secondary-foreground: var(--foreground);
+
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-destructive: var(--danger);
+
+  --radius-sm: 0.5rem;
+  --radius-md: 0.625rem;
+  --radius-lg: 0.875rem;
+  --radius-xl: 1.125rem;
+  --radius-2xl: 1.5rem;
+  --radius-3xl: 2rem;
+
+  --color-series-1: var(--series-1);
+  --color-series-2: var(--series-2);
+  --color-series-3: var(--series-3);
+  --color-series-4: var(--series-4);
+  --color-grid: var(--grid);
+
+  --shadow-card: var(--shadow-card);
+  --shadow-float: var(--shadow-float);
+
+  --ease-apple: cubic-bezier(0.25, 0.1, 0.25, 1);
+}
+
+:root {
+  color-scheme: light;
+
+  --background: #f5f5f7;
+  --foreground: #1d1d1f;
+  --card: #ffffff;
+  --muted: #f0f0f2;
+  --muted-foreground: #6e6e73;
+  --subtle: #86868b;
+  --border: rgb(0 0 0 / 0.08);
+  --separator: rgb(60 60 67 / 0.12);
+  --input: rgb(0 0 0 / 0.12);
+
+  --primary: #0071e3;
+  --primary-hover: #0077ed;
+  --primary-foreground: #ffffff;
+  --accent: rgb(0 113 227 / 0.08);
+  --accent-foreground: #0066cc;
+  --ring: rgb(0 113 227 / 0.45);
+
+  --success: #248a3d;
+  --success-soft: rgb(52 199 89 / 0.12);
+  --warning: #b25000;
+  --warning-soft: rgb(255 149 0 / 0.14);
+  --danger: #d70015;
+  --danger-soft: rgb(255 59 48 / 0.1);
+
+  /* Paleta categórica para gráficas (validada para daltonismo; ver skill dataviz) */
+  --series-1: #2a78d6;
+  --series-2: #eb6834;
+  --series-3: #1baf7a;
+  --series-4: #eda100;
+  --grid: #ececef;
+
+  --shadow-card: 0 1px 1px rgb(0 0 0 / 0.02), 0 4px 18px rgb(0 0 0 / 0.04);
+  --shadow-float: 0 12px 40px rgb(0 0 0 / 0.12), 0 2px 8px rgb(0 0 0 / 0.04);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+
+    --background: #000000;
+    --foreground: #f5f5f7;
+    --card: #1c1c1e;
+    --muted: #2c2c2e;
+    --muted-foreground: #a1a1a6;
+    --subtle: #8e8e93;
+    --border: rgb(255 255 255 / 0.1);
+    --separator: rgb(84 84 88 / 0.5);
+    --input: rgb(255 255 255 / 0.16);
+
+    --primary: #0a84ff;
+    --primary-hover: #409cff;
+    --accent: rgb(10 132 255 / 0.16);
+    --accent-foreground: #409cff;
+    --ring: rgb(10 132 255 / 0.55);
+
+    --success: #30d158;
+    --success-soft: rgb(48 209 88 / 0.16);
+    --warning: #ff9f0a;
+    --warning-soft: rgb(255 159 10 / 0.16);
+    --danger: #ff453a;
+    --danger-soft: rgb(255 69 58 / 0.16);
+
+    --series-1: #3987e5;
+    --series-2: #d95926;
+    --series-3: #199e70;
+    --series-4: #c98500;
+    --grid: #2c2c2e;
+
+    --shadow-card: 0 0 0 1px rgb(255 255 255 / 0.04);
+    --shadow-float: 0 12px 40px rgb(0 0 0 / 0.6);
+  }
+}
+
+/* Tipografía: una escala corta, tracking negativo en tamaños grandes */
+@utility text-display {
+  font-size: clamp(2.5rem, 1.6rem + 3.6vw, 4.75rem);
+  line-height: 1.04;
+  letter-spacing: -0.035em;
+  font-weight: 600;
+}
+
+@utility text-title-1 {
+  font-size: clamp(2rem, 1.5rem + 1.8vw, 3rem);
+  line-height: 1.08;
+  letter-spacing: -0.028em;
+  font-weight: 600;
+}
+
+@utility text-title-2 {
+  font-size: 1.75rem;
+  line-height: 1.14;
+  letter-spacing: -0.022em;
+  font-weight: 600;
+}
+
+@utility text-title-3 {
+  font-size: 1.1875rem;
+  line-height: 1.26;
+  letter-spacing: -0.012em;
+  font-weight: 600;
+}
+
+@utility text-eyebrow {
+  font-size: 0.75rem;
+  line-height: 1.33;
+  letter-spacing: 0.01em;
+  font-weight: 600;
+  color: var(--accent-foreground);
+}
+
+/* Material translúcido tipo "vibrancy" para barras y paneles flotantes */
+@utility material {
+  background-color: color-mix(in oklab, var(--card) 72%, transparent);
+  backdrop-filter: saturate(180%) blur(20px);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring;
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    @apply min-h-dvh bg-background font-sans text-[15px] leading-normal text-foreground antialiased;
+    font-feature-settings: 'cv11', 'ss01';
+  }
+
+  ::selection {
+    background: var(--accent);
+  }
+
+  :focus-visible {
+    @apply outline-2 outline-offset-2;
+  }
+
+  @media (max-width: 767px) {
+    input, select, textarea {
+      font-size: 16px;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    /* Los elementos del sitio público con versión de solo desvanecimiento quedan fuera (ver más abajo). */
+    *:where(:not(.hero-drop, .word-in, .hero-fade, .hero-media, .hero-badge, .animate-page, [data-reveal])), *::before, *::after {
+      scroll-behavior: auto !important;
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+@keyframes rise {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+
+.animate-rise {
+  animation: rise 700ms var(--ease-apple) both;
+}
+
+/* Diálogo modal: hoja inferior en celular, ventana centrada desde 640 px */
+.sheet {
+  margin: auto auto 0;
+  width: 100%;
+  max-width: 100%;
+  max-height: 92dvh;
+  padding: 0;
+  border: 0;
+  border-radius: 1.5rem 1.5rem 0 0;
+  background: var(--background);
+  color: var(--foreground);
+  box-shadow: var(--shadow-float);
+}
+.sheet[open] {
+  animation: rise 380ms var(--ease-apple) both;
+}
+.sheet::backdrop {
+  background: rgb(0 0 0 / 0.35);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+@media (min-width: 640px) {
+  .sheet {
+    margin: auto;
+    max-width: 34rem;
+    max-height: 88dvh;
+    border-radius: 1.5rem;
+  }
+  .sheet.sheet-wide {
+    max-width: 46rem;
+  }
+}
+html:has(dialog[open]) {
+  overflow: hidden;
+}
+
+/* Impresión de notas y recetas: solo el documento */
+@media print {
+  body {
+    background: white;
+  }
+  .no-print {
+    display: none !important;
+  }
+}
+
+/* ── Movimiento del sitio público ─────────────────────────────────────────────
+ * Todo es CSS: el JS solo marca los elementos visibles. Sin JS, el contenido se ve completo
+ * (la clase `reveal-on` la agrega un script). Con "reducir movimiento" se desactiva.
+ */
+
+/* Aparición al hacer scroll */
+.reveal-on [data-reveal] {
+  opacity: 0;
+  transform: translate3d(0, 28px, 0);
+  filter: blur(6px);
+  transition: opacity 900ms var(--ease-apple), transform 900ms var(--ease-apple), filter 900ms var(--ease-apple);
+  transition-delay: var(--reveal-delay, 0ms);
+}
+.reveal-on [data-reveal='scale'] {
+  transform: scale(0.94);
+}
+.reveal-on [data-reveal='left'] {
+  transform: translate3d(-28px, 0, 0);
+}
+.reveal-on [data-reveal][data-revealed] {
+  opacity: 1;
+  transform: none;
+  filter: none;
+}
+
+/* Entrada escalonada del hero al cargar */
+.animate-rise-1 { animation: rise 900ms var(--ease-apple) 80ms both; }
+.animate-rise-2 { animation: rise 900ms var(--ease-apple) 180ms both; }
+.animate-rise-3 { animation: rise 900ms var(--ease-apple) 280ms both; }
+.animate-rise-4 { animation: rise 1100ms var(--ease-apple) 420ms both; }
+
+/* Transición suave entre páginas del sitio */
+@keyframes page-in {
+  from { opacity: 0; transform: translate3d(0, 10px, 0); }
+  to { opacity: 1; transform: none; }
+}
+.animate-page {
+  animation: page-in 600ms var(--ease-apple) both;
+}
+
+/* Fondo luminoso animado detrás del hero y de la franja de llamada a la acción */
+.aurora {
+  pointer-events: none;
+  position: absolute;
+  inset: -30% -10% auto;
+  height: 130%;
+  background:
+    radial-gradient(38% 48% at 18% 28%, var(--aurora-1), transparent 70%),
+    radial-gradient(34% 44% at 82% 18%, var(--aurora-2), transparent 70%),
+    radial-gradient(30% 40% at 58% 72%, var(--aurora-3), transparent 70%);
+  filter: blur(24px);
+  animation: aurora 18s ease-in-out infinite alternate;
+}
+:root {
+  --aurora-1: rgb(0 113 227 / 0.16);
+  --aurora-2: rgb(27 175 122 / 0.12);
+  --aurora-3: rgb(0 113 227 / 0.09);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --aurora-1: rgb(10 132 255 / 0.22);
+    --aurora-2: rgb(25 158 112 / 0.16);
+    --aurora-3: rgb(10 132 255 / 0.12);
+  }
+}
+@keyframes aurora {
+  0% { transform: translate3d(0, 0, 0) scale(1); }
+  50% { transform: translate3d(3%, -2%, 0) scale(1.06); }
+  100% { transform: translate3d(-3%, 2%, 0) scale(1); }
+}
+
+/* Brillo que cruza los botones principales al pasar el cursor */
+.btn-shine {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+.btn-shine::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(110deg, transparent 30%, rgb(255 255 255 / 0.35) 50%, transparent 70%);
+  transform: translateX(-120%);
+  transition: transform 800ms var(--ease-apple);
+}
+.btn-shine:hover::after {
+  transform: translateX(120%);
+}
+
+/* Tarjetas que se elevan al pasar el cursor */
+.lift {
+  transition: transform 400ms var(--ease-apple), box-shadow 400ms var(--ease-apple), background-color 300ms;
+}
+@media (hover: hover) {
+  .lift:hover {
+    transform: translate3d(0, -4px, 0);
+    box-shadow: var(--shadow-float);
+  }
+}
+
+/* Efectos ligados al scroll (Chrome, Edge y Safari recientes; el resto ve la versión estática) */
+@supports (animation-timeline: view()) {
+  .scroll-zoom-frame {
+    animation: scroll-frame linear both;
+    animation-timeline: view();
+    animation-range: entry 0% cover 45%;
+  }
+  .scroll-zoom-image {
+    animation: scroll-image linear both;
+    animation-timeline: view();
+    animation-range: entry 0% exit 100%;
+  }
+  .scroll-grow-y {
+    transform-origin: top;
+    animation: grow-y linear both;
+    animation-timeline: view();
+    animation-range: entry 10% cover 70%;
+  }
+  @keyframes scroll-frame {
+    from { transform: scale(0.92); border-radius: 3rem; }
+    to { transform: scale(1); }
+  }
+  /* La escala nunca baja de 1.08: el sobrante (4 % por lado) siempre cubre el desplazamiento de ±3 %. */
+  @keyframes scroll-image {
+    from { transform: scale(1.16) translate3d(0, -3%, 0); }
+    to { transform: scale(1.08) translate3d(0, 3%, 0); }
+  }
+  @keyframes grow-y {
+    from { transform: scaleY(0); }
+    to { transform: scaleY(1); }
+  }
+}
+
+/* Línea que une los pasos de "Tu experiencia" y se dibuja al aparecer */
+.reveal-on [data-reveal='line'] {
+  opacity: 1;
+  filter: none;
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 1600ms var(--ease-apple) 300ms;
+}
+.reveal-on [data-reveal='line'][data-revealed] {
+  transform: scaleX(1);
+}
+
+/* Con "reducir movimiento": se conserva un desvanecimiento suave, sin desplazamientos, zoom ni desenfoque. */
+@media (prefers-reduced-motion: reduce) {
+  .reveal-on [data-reveal] {
+    transform: none !important;
+    filter: none !important;
+    transition: opacity 700ms ease var(--reveal-delay, 0ms) !important;
+  }
+  .reveal-on [data-reveal='line'] {
+    opacity: 1 !important;
+    transform: none !important;
+  }
+  .aurora,
+  .scroll-zoom-frame,
+  .scroll-zoom-image,
+  .scroll-grow-y {
+    animation: none !important;
+  }
+}
+
+/* ── Entrada del primer apartado (hero) ───────────────────────────────────── */
+
+/* Insignia de especialidad: cae desde arriba */
+@keyframes hero-drop {
+  from { opacity: 0; transform: translate3d(0, -16px, 0) scale(0.96); }
+  to { opacity: 1; transform: none; }
+}
+.hero-drop { animation: hero-drop 800ms var(--ease-apple) 100ms both; }
+
+/* Nombre palabra por palabra */
+@keyframes word-in {
+  from { opacity: 0; transform: translate3d(0, 0.45em, 0) rotate(2deg); filter: blur(10px); }
+  to { opacity: 1; transform: none; filter: none; }
+}
+.word-in {
+  display: inline-block;
+  animation: word-in 950ms var(--ease-apple) both;
+  animation-delay: calc(250ms + var(--i, 0) * 95ms);
+}
+
+/* Destello de color que cruza el nombre una vez que terminó de aparecer */
+@keyframes sheen {
+  from { background-position: 100% 0; }
+  to { background-position: 0% 0; }
+}
+.text-sheen {
+  /* El degradado mide 3 veces el texto: en ambos extremos solo se ve el color normal. */
+  background: linear-gradient(100deg, var(--foreground) 44%, var(--primary) 50%, var(--foreground) 56%) 100% 0 / 300% 100% no-repeat;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: sheen 1600ms var(--ease-apple) 1300ms both;
+}
+
+/* Texto y botones con retraso configurable (--d) */
+@keyframes hero-fade {
+  from { opacity: 0; transform: translate3d(0, 14px, 0); filter: blur(4px); }
+  to { opacity: 1; transform: none; filter: none; }
+}
+.hero-fade { animation: hero-fade 900ms var(--ease-apple) var(--d, 0ms) both; }
+
+/* La foto se descubre desde el centro */
+@keyframes hero-media {
+  from { opacity: 0; clip-path: inset(14% 10% 14% 10% round 3rem); transform: translate3d(0, 40px, 0); }
+  to { opacity: 1; clip-path: inset(0 0 0 0 round 1.5rem); transform: none; }
+}
+.hero-media { animation: hero-media 1500ms var(--ease-apple) 1050ms both; }
+
+/* Reflejo de luz que barre la foto al terminar de descubrirse */
+@keyframes hero-shine {
+  from { transform: translateX(-100%); opacity: 1; }
+  to { transform: translateX(100%); opacity: 1; }
+}
+.hero-shine {
+  background: linear-gradient(105deg, transparent 35%, rgb(255 255 255 / 0.28) 50%, transparent 65%);
+  transform: translateX(-100%);
+  animation: hero-shine 1400ms var(--ease-apple) 2300ms both;
+}
+
+/* Credenciales: aparecen con rebote y luego flotan suavemente */
+@keyframes badge-pop {
+  from { opacity: 0; transform: translate3d(0, 18px, 0) scale(0.85); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes badge-float {
+  0%, 100% { translate: 0 0; }
+  50% { translate: 0 -8px; }
+}
+.hero-badge {
+  animation: badge-pop 800ms cubic-bezier(0.34, 1.56, 0.64, 1) var(--d, 1800ms) both, badge-float 6s ease-in-out calc(var(--d, 1800ms) + 800ms) infinite;
+}
+
+/* El fondo luminoso aparece poco a poco */
+@keyframes aurora-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.aurora { animation: aurora-in 2000ms var(--ease-apple) both, aurora 18s ease-in-out 2s infinite alternate; }
+
+@keyframes fade-only {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hero-drop { animation: fade-only 700ms ease 100ms both !important; }
+  .word-in { animation: fade-only 700ms ease calc(250ms + var(--i, 0) * 90ms) both !important; }
+  .hero-fade { animation: fade-only 700ms ease var(--d, 0ms) both !important; }
+  .hero-media { animation: fade-only 900ms ease 900ms both !important; }
+  .hero-badge { animation: fade-only 700ms ease var(--d, 1800ms) both !important; }
+  .animate-page { animation: fade-only 400ms ease both !important; }
+  .text-sheen { animation: none !important; }
+  .hero-shine { display: none; }
+}
