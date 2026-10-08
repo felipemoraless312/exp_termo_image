@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { ClipboardList, Info, ScanHeart } from 'lucide-react'
+import { ClipboardList, FileText, Info, ScanHeart } from 'lucide-react'
 
 import { Badge } from '@/components/ui/badge'
 import { buttonVariants } from '@/components/ui/button'
@@ -86,7 +86,7 @@ export function OncologySection({ patient, record, chart, campaigns, surveys, ca
               <CardHeader
                 className="p-0 sm:p-0"
                 title={`Imágenes térmicas${thermalImages.length ? ` · ${thermalImages.length}` : ''}`}
-                description={thermographies.length ? 'Imágenes adjuntas al expediente' : 'Aún sin interpretación registrada'}
+                description={thermographies.length ? 'Imágenes adjuntas al expediente' : 'Aún sin interpretación: registre la termografía para generar el informe impreso'}
                 action={canUpload && <UploadFilesDialog patientId={patient.id} category={THERMAL_CATEGORY} />}
               />
               {thermalImages.length ? <ImageGrid images={thermalImages} /> : <p className="mt-3 text-[14px] text-muted-foreground">Sin imágenes térmicas.</p>}
@@ -215,7 +215,12 @@ function ThermographyCard({ thermography: t, patientId, canWrite }: { thermograp
       <CardHeader
         title={<span className="flex flex-wrap items-center gap-2">{t.folio} <Badge tone={thermalGradeInfo[t.grade].tone}>{t.grade} · {thermalGradeInfo[t.grade].label}</Badge></span>}
         description={`${formatDateTime(t.performedAt)} · ${t.performedBy}${t.recorded ? ` · ${t.recorded.location}` : ''}${t.equipment ? ` · ${t.equipment}` : ''}${t.roomTemp ? ` · sala ${t.roomTemp} °C` : ''}${t.acclimatizationMin ? ` · aclimatación ${t.acclimatizationMin} min` : ''}`}
-        action={canWrite && <ThermographyImagesDialog patientId={patientId} thermographyId={t.id} />}
+        action={
+          <div className="flex flex-wrap gap-1">
+            <Link href={`/sistema/pacientes/${patientId}/termografia/${t.id}/informe`} className={buttonVariants({ variant: 'ghost', size: 'sm' })}><FileText /> Informe</Link>
+            {canWrite && <ThermographyImagesDialog patientId={patientId} thermographyId={t.id} />}
+          </div>
+        }
       />
       <div className="space-y-4 px-5 pb-5 pt-3 sm:px-6 sm:pb-6">
         <div className="-mx-1 overflow-x-auto px-1">

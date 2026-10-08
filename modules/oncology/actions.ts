@@ -184,6 +184,23 @@ export async function addThermographyImages(_: ActionState, formData: FormData):
   })
 }
 
+/** Ajusta el informe impreso: imágenes (hasta 4, en orden), diagnóstico y fecha del estudio. */
+export async function saveThermographyReport(_: ActionState, formData: FormData): Promise<ActionState> {
+  return runAction(formData, async (form) => {
+    const user = await requireStaff('oncology.write')
+    const patient = await patientOf(form)
+    const thermographyId = form.text('thermographyId', 'Termografía')
+    const imageIds = [1, 2, 3, 4].map((n) => form.optional(`image${n}`, 40)).filter((id): id is string => Boolean(id))
+    if (new Set(imageIds).size !== imageIds.length) reject('Elegiste la misma imagen en dos posiciones.')
+    const diagnosis = form.text('diagnosis', 'Diagnóstico', 300)
+    if (diagnosis.length < 3) reject('Escribe el diagnóstico del informe.')
+    await repository.saveThermographyReport(thermographyId, { imageIds, diagnosis, studyDate: form.requiredDate('studyDate', 'Fecha del estudio'), recorded: stampFor(user.name) })
+    audit(user, 'modificacion', 'Termografía', patient.id, `Ajustó el informe de termografía (${imageIds.length} imagen(es))`)
+    refresh()
+    return { ok: true, message: 'Informe actualizado' }
+  })
+}
+
 // ── Campañas ────────────────────────────────────────────────────────────────────
 
 export async function createCampaign(_: ActionState, formData: FormData): Promise<ActionState> {

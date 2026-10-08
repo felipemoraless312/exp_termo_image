@@ -24,3 +24,6 @@ aspirantes.xlsx
 
 # Accesos de prueba al portal (datos personales)
 accesos-portal-pruebas.txt
+
+# Ejemplos de informes con datos reales de pacientes (no subir)
+ejemplos/

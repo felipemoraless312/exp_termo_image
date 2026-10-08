@@ -2,7 +2,7 @@ import 'server-only'
 
 import { api, apiMaybe } from '@/lib/server/api'
 import type {
-  Appointment, AppointmentStatus, BreastExam, Campaign, CampaignAgenda, FileRef, OncologyChart, OncologyProfile, RiskFactors, Screening, Thermography,
+  Appointment, AppointmentStatus, BreastExam, Campaign, CampaignAgenda, FileRef, OncologyChart, OncologyProfile, RiskFactors, Screening, Thermography, ThermographyReport,
 } from './types'
 import type { SurveyResponse } from './psycho-survey'
 import type { Stamp } from '@/modules/patients/stamp'
@@ -42,6 +42,10 @@ export async function uploadThermographyImages(thermographyId: string, files: Fi
   form.set('recorded_by', recorded.by)
   form.set('location', recorded.location)
   return api(`/termografias/${segment(thermographyId)}/imagenes`, { method: 'POST', form })
+}
+
+export async function saveThermographyReport(thermographyId: string, report: ThermographyReport): Promise<ThermographyReport> {
+  return api(`/termografias/${segment(thermographyId)}/informe`, { method: 'PUT', body: report })
 }
 
 export async function listCampaigns(): Promise<Campaign[]> {

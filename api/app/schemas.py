@@ -177,6 +177,15 @@ class FileRef(Camel):
     recorded: Stamp | None = None
 
 
+class ThermographyReport(Camel):
+    """Datos del informe impreso: hasta 4 imágenes en orden, diagnóstico y fecha del estudio."""
+
+    image_ids: list[str] = Field(default_factory=list, max_length=4)
+    diagnosis: str = Field(min_length=3, max_length=300)
+    study_date: str = Field(pattern=r"^\d{4}-\d{2}-\d{2}$")
+    recorded: Stamp | None = None
+
+
 class Thermography(ThermographyIn):
     id: str
     folio: str
@@ -188,6 +197,7 @@ class Thermography(ThermographyIn):
     recommendation: Recommendation
     study_id: str | None = None
     images: list[FileRef] = []
+    report: ThermographyReport | None = None
 
 
 class CampaignIn(Camel):

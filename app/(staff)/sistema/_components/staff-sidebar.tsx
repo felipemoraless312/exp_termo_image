@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LogOut, MoreHorizontal, X } from 'lucide-react'
+import { LogOut, MoreHorizontal, PanelLeftClose, PanelLeftOpen, X } from 'lucide-react'
 
 import { PlatformLogo } from '@/components/brand/logo'
 import { Avatar } from '@/components/ui/avatar'
@@ -14,25 +14,50 @@ import { isActive, mobileNavigationFor, navigationFor } from './navigation'
 
 type User = { name: string; role: StaffRole }
 
-export function StaffSidebar({ user }: { user: User }) {
+/** Cookie con la preferencia de la barra lateral; el layout la lee para pintar el ancho correcto desde el servidor. */
+export const SIDEBAR_COOKIE = 'md_sidebar'
+
+/** Barra lateral plegable: completa (w-60) o solo íconos (w-16). El estado vive en `data-sidebar` del contenedor `#staff-shell`. */
+export function StaffSidebar({ user, initialCollapsed }: { user: User; initialCollapsed: boolean }) {
   const pathname = usePathname()
+  const [collapsed, setCollapsed] = useState(initialCollapsed)
   const groups = navigationFor(user.role)
   const hrefs = groups.flatMap((group) => group.items.map((item) => item.href))
 
+  function toggle() {
+    const next = !collapsed
+    setCollapsed(next)
+    document.getElementById('staff-shell')?.setAttribute('data-sidebar', next ? 'collapsed' : 'expanded')
+    document.cookie = `${SIDEBAR_COOKIE}=${next ? 'collapsed' : 'expanded'}; path=/; max-age=31536000; samesite=lax`
+  }
+
   return (
-    <aside className="no-print fixed inset-y-0 left-0 z-30 hidden w-60 flex-col border-r border-border bg-card/60 backdrop-blur-xl md:flex">
-      <div className="px-5 pb-4 pt-5"><PlatformLogo /></div>
-      <nav aria-label="Sistema" className="flex-1 space-y-6 overflow-y-auto px-3 py-3">
+    <aside className="no-print fixed inset-y-0 left-0 z-30 hidden w-60 flex-col border-r border-border bg-card/60 backdrop-blur-xl transition-[width] duration-200 md:flex group-data-[sidebar=collapsed]/shell:w-16">
+      <div className="flex items-center justify-between gap-2 px-5 pb-4 pt-5 group-data-[sidebar=collapsed]/shell:justify-center group-data-[sidebar=collapsed]/shell:px-0">
+        <PlatformLogo className="min-w-0 group-data-[sidebar=collapsed]/shell:hidden" />
+        <button
+          type="button"
+          onClick={toggle}
+          aria-expanded={!collapsed}
+          aria-label={collapsed ? 'Mostrar menú' : 'Ocultar menú'}
+          title={collapsed ? 'Mostrar menú' : 'Ocultar menú'}
+          className="flex size-8 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+        >
+          {collapsed ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}
+        </button>
+      </div>
+      <nav aria-label="Sistema" className="flex-1 space-y-6 overflow-y-auto px-3 py-3 group-data-[sidebar=collapsed]/shell:px-2">
         {groups.map((group) => (
           <div key={group.label}>
-            <p className="px-3 pb-1.5 text-[11px] font-semibold text-subtle">{group.label}</p>
+            <p className="px-3 pb-1.5 text-[11px] font-semibold text-subtle group-data-[sidebar=collapsed]/shell:sr-only">{group.label}</p>
             <ul className="space-y-0.5">
               {group.items.map(({ href, label, icon: Icon }) => {
                 const active = isActive(pathname, href, hrefs)
                 return (
                   <li key={href}>
-                    <Link href={href} aria-current={active ? 'page' : undefined} className={cn('flex h-9 items-center gap-3 rounded-lg px-3 text-[14px] transition-colors', active ? 'bg-accent font-medium text-accent-foreground' : 'text-foreground/80 hover:bg-muted')}>
-                      <Icon size={17} aria-hidden="true" className={active ? '' : 'text-muted-foreground'} />{label}
+                    <Link href={href} title={collapsed ? label : undefined} aria-current={active ? 'page' : undefined} className={cn('flex h-9 items-center gap-3 rounded-lg px-3 text-[14px] transition-colors group-data-[sidebar=collapsed]/shell:justify-center group-data-[sidebar=collapsed]/shell:px-0', active ? 'bg-accent font-medium text-accent-foreground' : 'text-foreground/80 hover:bg-muted')}>
+                      <Icon size={17} aria-hidden="true" className={cn('shrink-0', !active && 'text-muted-foreground')} />
+                      <span className="truncate group-data-[sidebar=collapsed]/shell:sr-only">{label}</span>
                     </Link>
                   </li>
                 )
@@ -48,9 +73,9 @@ export function StaffSidebar({ user }: { user: User }) {
 
 function UserCard({ user }: { user: User }) {
   return (
-    <div className="flex items-center gap-3 border-t border-border p-4">
+    <div className="flex items-center gap-3 border-t border-border p-4 group-data-[sidebar=collapsed]/shell:flex-col group-data-[sidebar=collapsed]/shell:px-0">
       <Avatar name={user.name} size={34} />
-      <div className="min-w-0 flex-1">
+      <div className="min-w-0 flex-1 group-data-[sidebar=collapsed]/shell:sr-only">
         <p className="truncate text-[13px] font-medium">{user.name}</p>
         <p className="text-xs text-muted-foreground">{staffRoleLabels[user.role]}</p>
       </div>

@@ -15,11 +15,12 @@ export const answerLabels: Record<Answer, string> = { si: 'Sí', no: 'No', 'no-s
 export const thermalGrades = ['TH1', 'TH2', 'TH3', 'TH4', 'TH5'] as const
 export type ThermalGrade = (typeof thermalGrades)[number]
 export const thermalGradeInfo: Record<ThermalGrade, { label: string; tone: BadgeTone }> = {
-  TH1: { label: 'Normal no vascular', tone: 'success' },
-  TH2: { label: 'Normal vascular', tone: 'success' },
-  TH3: { label: 'Dudoso', tone: 'warning' },
-  TH4: { label: 'Anormal', tone: 'danger' },
-  TH5: { label: 'Muy anormal', tone: 'danger' },
+  // Clasificación del informe de la clínica (Gutiérrez-Delgado).
+  TH1: { label: 'Normal', tone: 'success' },
+  TH2: { label: 'Normal con patrón vascular', tone: 'success' },
+  TH3: { label: 'Anormal benigno', tone: 'warning' },
+  TH4: { label: 'Anormal probablemente maligno', tone: 'danger' },
+  TH5: { label: 'Muy anormal con alta probabilidad de malignidad', tone: 'danger' },
 }
 
 export const vascularPatterns = ['normal', 'aumentado', 'asimetrico', 'anarquico'] as const
@@ -144,8 +145,12 @@ export interface Thermography {
   recommendationDetail?: string
   studyId?: string
   images: FileRef[]
+  /** Configuración del informe impreso (si no existe, el informe usa valores automáticos). */
+  report?: ThermographyReport
   recorded?: Stamp
 }
+
+export interface ThermographyReport { imageIds: string[]; diagnosis: string; studyDate: string; recorded?: Stamp }
 
 export interface Assessment {
   age: number

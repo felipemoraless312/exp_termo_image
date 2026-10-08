@@ -15,14 +15,14 @@ from .. import db
 from ..oncology_rules import ASYMMETRY_DELTA, assess, overall_grade, suggest_recommendation
 from ..schemas import (
     Appointment, AppointmentIn, AppointmentPatch, BreastExam, BreastExamIn, Campaign, CampaignIn, FileRef, OncologyProfile, RiskFactors,
-    Screening, Stamp, Survey, SurveyEdit, SurveyIn, Thermography, ThermographyIn,
+    Screening, Stamp, Survey, SurveyEdit, SurveyIn, Thermography, ThermographyIn, ThermographyReport,
 )
 from ..settings import ALLOWED_IMAGE_TYPES, FILES_DIR, MAX_UPLOAD_BYTES
 from .expedientes import get_patient_or_404
 
 router = APIRouter(tags=["oncologia"])
 
-GRADE_LABELS = {"TH1": "normal no vascular", "TH2": "normal vascular", "TH3": "dudoso", "TH4": "anormal", "TH5": "muy anormal"}
+GRADE_LABELS = {"TH1": "normal", "TH2": "normal con patrón vascular", "TH3": "anormal benigno", "TH4": "anormal probablemente maligno", "TH5": "muy anormal con alta probabilidad de malignidad"}
 
 
 # ── Lectura ─────────────────────────────────────────────────────────────────────
@@ -237,6 +237,25 @@ async def upload_images(
             path.unlink(missing_ok=True)
         raise
     return [FileRef(id=f["id"], name=f["name"], content_type=f["content_type"], size=f["size"], label=label, created_at=stamp).doc() for f in saved]
+
+
+@router.put("/termografias/{thermography_id}/informe")
+def save_thermography_report(thermography_id: str, body: ThermographyReport) -> dict[str, Any]:
+    """Guarda qué imágenes (de la misma paciente), qué diagnóstico y qué fecha lleva el informe impreso."""
+    if len(set(body.image_ids)) != len(body.image_ids):
+        raise HTTPException(422, "Una imagen está repetida en el informe.")
+    with db.transaction() as conn:
+        row = conn.execute("SELECT patient_id, data FROM thermographies WHERE id = ?", (thermography_id,)).fetchone()
+        if not row:
+            raise HTTPException(404, "La termografía no existe.")
+        for file_id in body.image_ids:
+            f = conn.execute("SELECT patient_id, content_type FROM files WHERE id = ?", (file_id,)).fetchone()
+            if not f or f["patient_id"] != row["patient_id"] or not f["content_type"].startswith("image/"):
+                raise HTTPException(422, "Una de las imágenes no pertenece a esta paciente.")
+        data = json.loads(row["data"])
+        data["report"] = body.doc()
+        conn.execute("UPDATE thermographies SET data = ? WHERE id = ?", (db.dumps(data), thermography_id))
+    return data["report"]
 
 
 @router.get("/archivos/{file_id}")
