@@ -41,3 +41,9 @@ export function isActive(pathname: string, href: string, siblings: string[] = []
   const matches = pathname === href || pathname.startsWith(`${href}/`)
   return matches && !siblings.some((other) => other !== href && other.startsWith(`${href}/`) && (pathname === other || pathname.startsWith(`${other}/`)))
 }
+
+/**
+ * Cookie con la preferencia de la barra lateral (plegada o no). Vive aquí y no en `staff-sidebar.tsx`:
+ * una constante importada desde un módulo 'use client' llega al servidor como referencia, no como texto.
+ */
+export const SIDEBAR_COOKIE = 'md_sidebar'

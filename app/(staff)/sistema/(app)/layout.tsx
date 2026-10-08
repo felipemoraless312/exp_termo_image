@@ -2,7 +2,8 @@ import type { Metadata } from 'next'
 import { cookies } from 'next/headers'
 
 import { requireStaff } from '@/modules/auth/session'
-import { SIDEBAR_COOKIE, StaffSidebar, StaffTabBar } from '../_components/staff-sidebar'
+import { SIDEBAR_COOKIE } from '../_components/navigation'
+import { StaffSidebar, StaffTabBar } from '../_components/staff-sidebar'
 
 export const metadata: Metadata = {
   title: { default: 'Sistema', template: '%s · Sistema' },

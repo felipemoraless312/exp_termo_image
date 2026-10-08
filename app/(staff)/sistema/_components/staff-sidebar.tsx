@@ -10,12 +10,9 @@ import { Avatar } from '@/components/ui/avatar'
 import { signOutStaff } from '@/modules/auth/actions'
 import { staffRoleLabels, type StaffRole } from '@/modules/auth/permissions'
 import { cn } from '@/lib/utils'
-import { isActive, mobileNavigationFor, navigationFor } from './navigation'
+import { isActive, mobileNavigationFor, navigationFor, SIDEBAR_COOKIE } from './navigation'
 
 type User = { name: string; role: StaffRole }
-
-/** Cookie con la preferencia de la barra lateral; el layout la lee para pintar el ancho correcto desde el servidor. */
-export const SIDEBAR_COOKIE = 'md_sidebar'
 
 /** Barra lateral plegable: completa (w-60) o solo íconos (w-16). El estado vive en `data-sidebar` del contenedor `#staff-shell`. */
 export function StaffSidebar({ user, initialCollapsed }: { user: User; initialCollapsed: boolean }) {
