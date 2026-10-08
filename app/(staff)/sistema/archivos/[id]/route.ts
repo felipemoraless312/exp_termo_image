@@ -2,7 +2,7 @@ import { apiRaw } from '@/lib/server/api'
 import { canAccess } from '@/modules/auth/permissions'
 import { getStaffSession } from '@/modules/auth/session'
 
-/** Imágenes del expediente (p. ej. termografías). Solo el personal con sesión; la API nunca se expone al navegador. */
+/** Archivos del expediente (imágenes térmicas, estudios en PDF). Solo el personal con sesión; la API nunca se expone al navegador. */
 export async function GET(_: Request, { params }: RouteContext<'/sistema/archivos/[id]'>) {
   const user = await getStaffSession()
   if (!user || !canAccess(user.role, 'record')) return new Response('No autorizado', { status: 401 })

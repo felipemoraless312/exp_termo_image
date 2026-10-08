@@ -14,6 +14,7 @@ import { listPatientContacts } from '@/modules/access/data'
 import { accessScopes } from '@/modules/access/types'
 import { auditActionLabels, auditRoleLabels } from '@/modules/audit/log'
 import { canAccess, type StaffRole } from '@/modules/auth/permissions'
+import { PatientFilesSection } from '@/modules/files/components/patient-files'
 import { requireStaff } from '@/modules/auth/session'
 import { allergyKindLabels, sexLabels } from '@/modules/catalogs/clinical'
 import { getPatientChart, listRecordEvents } from '@/modules/patients/data'
@@ -170,6 +171,7 @@ export default async function PatientChartPage({ params, searchParams }: PagePro
                 ))}
               </div>
             ) : <Card><EmptyState title="Sin estudios solicitados" /></Card>}
+            <PatientFilesSection patientId={patient.id} canUpload={can('files.upload')} />
           </>
         )}
         {current === 'dispositivos' && (

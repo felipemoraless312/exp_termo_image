@@ -16,6 +16,7 @@ FILES_DIR = DATA_DIR / "archivos"
 
 MAX_UPLOAD_BYTES = 20 * 1024 * 1024
 ALLOWED_IMAGE_TYPES = {"image/jpeg", "image/png", "image/tiff", "image/bmp", "image/webp"}
+ALLOWED_DOCUMENT_TYPES = ALLOWED_IMAGE_TYPES | {"application/pdf"}
 
 
 def _read_env_file(path: Path) -> dict[str, str]:

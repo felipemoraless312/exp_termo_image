@@ -15,7 +15,7 @@ from contextlib import asynccontextmanager
 from fastapi import Depends, FastAPI, Header, HTTPException
 
 from .db import init_db
-from .routers import expedientes, oncologia
+from .routers import archivos, expedientes, oncologia
 from .settings import API_KEY
 
 
@@ -35,6 +35,7 @@ async def lifespan(_: FastAPI):
 app = FastAPI(title="UP Chiapas · API del expediente clínico", version="1.0.0", dependencies=[Depends(require_key)], lifespan=lifespan)
 app.include_router(expedientes.router)
 app.include_router(oncologia.router)
+app.include_router(archivos.router)
 
 
 @app.get("/salud", tags=["sistema"])

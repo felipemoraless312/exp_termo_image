@@ -22,6 +22,8 @@ export type StaffArea =
   | 'vitals'
   /** Registrar llegada, inasistencia o regresar a pendiente una cita de campaña. */
   | 'campaign.checkin'
+  /** Subir estudios de laboratorio (PDF), imágenes y otros archivos al expediente. */
+  | 'files.upload'
 
 const doctor: readonly StaffRole[] = ['medico']
 const clinical: readonly StaffRole[] = ['medico', 'enfermeria']
@@ -42,6 +44,7 @@ const areaPermissions: Record<StaffArea, readonly StaffRole[]> = {
   'oncology.write': doctor,
   vitals: clinical,
   'campaign.checkin': clinical,
+  'files.upload': clinical,
 }
 
 export function isStaffRole(value: unknown): value is StaffRole {
