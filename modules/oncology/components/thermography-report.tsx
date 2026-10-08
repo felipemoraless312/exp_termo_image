@@ -12,11 +12,12 @@ export function ThermographyReportSheet({ view }: { view: ThermographyReportView
   const { patient, thermography, report, doctor } = view
   const images = report.imageIds.map((id) => view.candidates.find((c) => c.id === id)).filter((c) => c !== undefined)
   return (
-    <article className="report-sheet mx-auto flex h-[190mm] w-[277mm] flex-col bg-white text-[3.4mm] leading-snug text-black shadow-lg print:shadow-none">
+    <article className="report-sheet mx-auto flex h-[186mm] w-[277mm] break-inside-avoid flex-col overflow-hidden bg-white text-[3.4mm] leading-snug text-black shadow-lg print:shadow-none">
       <header className="flex items-center gap-[6mm] px-[8mm] pt-[4mm]">
         {/* eslint-disable-next-line @next/next/no-img-element -- logo estático; se imprime sin optimizador */}
         <img src={R.logo} alt="CEPREC" className="h-[24mm] w-auto" />
-        <p className="text-[9.5mm] font-extrabold uppercase leading-none tracking-tight text-[#1a8cff] [font-stretch:condensed]" style={{ fontVariant: 'small-caps' }}>{R.organization}</p>
+        {/* Una sola línea y letra estrecha, como el encabezado original (escala horizontal: funciona con cualquier fuente). */}
+        <p className="origin-left scale-x-[0.78] whitespace-nowrap text-[9mm] font-extrabold uppercase leading-none tracking-tight text-[#1a8cff]">{R.organization}</p>
       </header>
       <h1 className="mt-[1mm] text-center text-[6.5mm] font-normal uppercase tracking-wide">{R.title}</h1>
 

@@ -16,7 +16,7 @@ export default async function StaffLayout({ children }: { children: React.ReactN
   const collapsed = (await cookies()).get(SIDEBAR_COOKIE)?.value === 'collapsed'
 
   return (
-    <div id="staff-shell" data-sidebar={collapsed ? 'collapsed' : 'expanded'} className="group/shell min-h-dvh">
+    <div id="staff-shell" data-sidebar={collapsed ? 'collapsed' : 'expanded'} className="group/shell min-h-dvh print:min-h-0">
       <StaffSidebar user={session} initialCollapsed={collapsed} />
       <StaffTabBar user={session} />
       <div className="transition-[padding] duration-200 md:pl-60 md:group-data-[sidebar=collapsed]/shell:pl-16 print:pl-0">
