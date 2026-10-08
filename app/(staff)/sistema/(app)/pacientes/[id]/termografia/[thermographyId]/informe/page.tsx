@@ -28,7 +28,7 @@ export default async function ThermographyReportPage({ params }: PageProps<'/sis
       <div className="-mx-1 overflow-x-auto px-1 pb-2 print:m-0 print:overflow-visible print:p-0">
         <ThermographyReportSheet view={view} />
       </div>
-      {canAccess(user.role, 'oncology.write') && <div className="mt-6"><ThermographyReportSettings view={view} /></div>}
+      {canAccess(user.role, 'oncology.write') && <div className="no-print mt-6"><ThermographyReportSettings view={view} /></div>}
     </>
   )
 }

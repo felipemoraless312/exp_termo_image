@@ -271,6 +271,8 @@ html:has(dialog[open]) {
 @media print {
   body {
     background: white;
+    /* min-h-dvh mide la hoja completa al imprimir y agregaba una página en blanco */
+    min-height: 0;
   }
   .no-print {
     display: none !important;
