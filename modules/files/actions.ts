@@ -8,7 +8,7 @@ import { audit } from '@/modules/audit/log'
 import { requireStaff } from '@/modules/auth/session'
 import { findPatientById } from '@/modules/patients/repository'
 import * as repository from './repository'
-import { fileCategories, MAX_FILE_MB } from './types'
+import { fileCategories, MAX_FILE_MB, THERMAL_CATEGORY } from './types'
 
 const accepted = new Set(['application/pdf', 'image/jpeg', 'image/png', 'image/tiff', 'image/bmp', 'image/webp'])
 
@@ -24,6 +24,7 @@ export async function uploadPatientFiles(_: ActionState, formData: FormData): Pr
     for (const file of files) {
       if (!accepted.has(file.type)) reject(`${file.name}: solo se aceptan PDF o imágenes (JPG, PNG, TIFF, BMP, WEBP).`)
       if (file.size > MAX_FILE_MB * 1024 * 1024) reject(`${file.name}: el archivo excede ${MAX_FILE_MB} MB.`)
+      if (category === THERMAL_CATEGORY && !file.type.startsWith('image/')) reject(`${file.name}: en imágenes de termografía solo se aceptan imágenes.`)
     }
 
     await repository.uploadPatientFiles(patient.id, files, category)

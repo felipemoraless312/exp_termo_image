@@ -12,7 +12,10 @@ export const fileCategories = [
   'Otro estudio o documento',
 ] as const
 
-export const ACCEPTED_FILES = 'application/pdf,image/jpeg,image/png,image/tiff,image/bmp,image/webp'
+/** Categoría de las imágenes térmicas: se muestran también en Oncología → Termografías. */
+export const THERMAL_CATEGORY = 'Imágenes de termografía' satisfies (typeof fileCategories)[number]
+
+export const ACCEPTED_FILES ='application/pdf,image/jpeg,image/png,image/tiff,image/bmp,image/webp'
 export const MAX_FILE_MB = 20
 
 export const isImage = (file: PatientFile) => file.contentType.startsWith('image/')

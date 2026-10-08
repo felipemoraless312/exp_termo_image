@@ -18,17 +18,22 @@ import {
   AppointmentActions, BreastExamDialog, OncologyDatalists, RiskFactorsDialog, ScheduleDialog, ScreeningDialog, ThermographyDialog, ThermographyImagesDialog,
 } from './oncology-forms'
 import { answeredCount, psychoSurveyQuestions, type SurveyResponse } from '../psycho-survey'
+import { ImageGrid, UploadFilesDialog } from '@/modules/files/components/patient-files'
+import { THERMAL_CATEGORY, type PatientFile } from '@/modules/files/types'
 
 const levelTone = { alto: 'danger', moderado: 'warning', informativo: 'neutral' } as const
 
 /** Apartado de oncología del expediente: riesgo, termografías, exploración clínica, campañas y cuestionario. */
-export function OncologySection({ patient, record, chart, campaigns, surveys, canWrite }: {
+export function OncologySection({ patient, record, chart, campaigns, surveys, canWrite, thermalImages, canUpload }: {
   patient: Patient
   record: ClinicalRecord
   chart: OncologyChart
   campaigns: Campaign[]
   surveys: SurveyResponse[]
   canWrite: boolean
+  /** Imágenes térmicas subidas como archivos del expediente (aún sin una termografía interpretada). */
+  thermalImages: PatientFile[]
+  canUpload: boolean
 }) {
   const { profile, assessment, thermographies, appointments } = chart
   const activeAppointment = appointments.find((a) => a.status === 'programada' || a.status === 'presente')
@@ -75,8 +80,18 @@ export function OncologySection({ patient, record, chart, campaigns, surveys, ca
           </Card>
 
           <SectionTitle>Termografías</SectionTitle>
-          {thermographies.length ? thermographies.map((t) => <ThermographyCard key={t.id} thermography={t} patientId={patient.id} canWrite={canWrite} />)
-            : <Card><EmptyState icon={ScanHeart} title="Sin termografías registradas" /></Card>}
+          {thermographies.map((t) => <ThermographyCard key={t.id} thermography={t} patientId={patient.id} canWrite={canWrite} />)}
+          {thermalImages.length > 0 || canUpload ? (
+            <Card className="p-5 sm:p-6">
+              <CardHeader
+                className="p-0 sm:p-0"
+                title={`Imágenes térmicas${thermalImages.length ? ` · ${thermalImages.length}` : ''}`}
+                description={thermographies.length ? 'Imágenes adjuntas al expediente' : 'Aún sin interpretación registrada'}
+                action={canUpload && <UploadFilesDialog patientId={patient.id} category={THERMAL_CATEGORY} />}
+              />
+              {thermalImages.length ? <ImageGrid images={thermalImages} /> : <p className="mt-3 text-[14px] text-muted-foreground">Sin imágenes térmicas.</p>}
+            </Card>
+          ) : !thermographies.length && <Card><EmptyState icon={ScanHeart} title="Sin termografías registradas" /></Card>}
 
           <SectionTitle>Exploración clínica de mama</SectionTitle>
           {profile.breastExams.length ? [...profile.breastExams].reverse().map((e) => <BreastExamCard key={e.id} exam={e} />)
