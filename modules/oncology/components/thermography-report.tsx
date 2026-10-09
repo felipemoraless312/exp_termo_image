@@ -2,7 +2,7 @@ import { ActionForm } from '@/components/ui/action-form'
 import { Card } from '@/components/ui/card'
 import { Field, FieldGrid, Input, Select, Textarea } from '@/components/ui/field'
 import { REPORT_MAX_IMAGES, thermographyReport as R } from '@/config/report'
-import { AnnotationLayer } from '@/modules/files/components/annotation-layer'
+import { AnnotatedImage } from '@/modules/files/components/annotation-layer'
 import { saveThermographyReport } from '../actions'
 import { diagnosisLine, type ThermographyReportView } from '../report'
 
@@ -30,9 +30,7 @@ export function ThermographyReportSheet({ view }: { view: ThermographyReportView
       <div className="mt-[3mm] flex h-[62mm] gap-[1.5mm] px-[8mm]">
         {images.length ? images.map((image) => (
           <div key={image.id} className="relative h-full min-w-0 max-w-[66mm] overflow-hidden">
-            {/* eslint-disable-next-line @next/next/no-img-element -- archivo protegido por sesión; el optimizador de imágenes no envía la cookie */}
-            <img src={`/sistema/archivos/${image.id}`} alt={image.name} className="h-full w-auto max-w-full object-cover" />
-            <AnnotationLayer annotation={view.annotations[image.id]} />
+            <AnnotatedImage fileId={image.id} alt={image.name} annotation={view.annotations[image.id]} className="h-full w-auto max-w-full object-cover" />
           </div>
         )) : <p className="flex flex-1 items-center justify-center border border-dashed border-neutral-400 text-neutral-500">Sin imágenes seleccionadas</p>}
       </div>
@@ -81,9 +79,7 @@ export function ThermographyReportSettings({ view }: { view: ThermographyReportV
               {candidates.map((c) => (
                 <li key={c.id}>
                   <span className="relative block aspect-[4/3] overflow-hidden rounded-lg bg-muted">
-                    {/* eslint-disable-next-line @next/next/no-img-element -- archivo protegido por sesión */}
-                    <img src={`/sistema/archivos/${c.id}`} alt={c.name} loading="lazy" className="h-full w-full object-cover" />
-                    <AnnotationLayer annotation={view.annotations[c.id]} />
+                    <AnnotatedImage fileId={c.id} alt={c.name} annotation={view.annotations[c.id]} lazy className="h-full w-full object-cover" />
                   </span>
                   <p className="mt-0.5 truncate text-[11px] text-muted-foreground">{c.name}</p>
                 </li>

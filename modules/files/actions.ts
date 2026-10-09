@@ -8,7 +8,7 @@ import { audit } from '@/modules/audit/log'
 import { requireStaff } from '@/modules/auth/session'
 import { findPatientById } from '@/modules/patients/repository'
 import { stampFor } from '@/modules/patients/stamp'
-import type { Point, Shape } from './annotations'
+import type { Crop, Point, Shape } from './annotations'
 import * as repository from './repository'
 import { fileCategories, MAX_FILE_MB, THERMAL_CATEGORY } from './types'
 
@@ -39,7 +39,7 @@ export async function uploadPatientFiles(_: ActionState, formData: FormData): Pr
 const shapeTypes = new Set(['flecha', 'elipse', 'rectangulo', 'poligono', 'trazo', 'texto'])
 
 /** Guarda la capa de anotaciones de una imagen (la imagen original no se modifica). Solo el médico. */
-export async function saveImageAnnotations(input: { patientId: string; fileId: string; imageWidth: number; imageHeight: number; shapes: Shape[] }): Promise<ActionState> {
+export async function saveImageAnnotations(input: { patientId: string; fileId: string; imageWidth: number; imageHeight: number; shapes: Shape[]; crop?: Crop }): Promise<ActionState> {
   try {
     const user = await requireStaff('oncology.write')
     const files = await repository.listPatientFiles(input.patientId)
@@ -53,8 +53,17 @@ export async function saveImageAnnotations(input: { patientId: string; fileId: s
       id: String(id).slice(0, 40), type, color, width: Math.min(Math.max(width, 0.5), 200),
       points: points.map(([x, y]) => [Math.round(x * 10) / 10, Math.round(y * 10) / 10] as Point), ...(text ? { text } : {}), ...(fill ? { fill: true } : {}),
     }))
-    await repository.saveAnnotations(file.id, { imageWidth: Math.round(input.imageWidth), imageHeight: Math.round(input.imageHeight), shapes, recorded: stampFor(user.name) })
-    audit(user, 'modificacion', 'Imagen', input.patientId, `${shapes.length ? `Anotó la imagen ${file.name} (${shapes.length} marca(s))` : `Quitó las anotaciones de la imagen ${file.name}`}`)
+    const W = Math.round(input.imageWidth), H = Math.round(input.imageHeight)
+    let crop: Crop | undefined
+    if (input.crop) {
+      const { x, y, width, height } = input.crop
+      if (![x, y, width, height].every(Number.isFinite)) return { ok: false, error: 'El recorte no es válido.' }
+      const cx = Math.min(Math.max(Math.round(x), 0), W - 1), cy = Math.min(Math.max(Math.round(y), 0), H - 1)
+      crop = { x: cx, y: cy, width: Math.max(1, Math.min(Math.round(width), W - cx)), height: Math.max(1, Math.min(Math.round(height), H - cy)) }
+    }
+    await repository.saveAnnotations(file.id, { imageWidth: W, imageHeight: H, shapes, ...(crop ? { crop } : {}), recorded: stampFor(user.name) })
+    const what = [shapes.length ? `${shapes.length} marca(s)` : '', crop ? `recorte ${crop.width}×${crop.height}` : ''].filter(Boolean).join(' y ')
+    audit(user, 'modificacion', 'Imagen', input.patientId, what ? `Editó la imagen ${file.name}: ${what}` : `Quitó las anotaciones y el recorte de la imagen ${file.name}`)
     revalidatePath(`/sistema/pacientes/${input.patientId}`, 'layout')
     return { ok: true, message: 'Anotaciones guardadas' }
   } catch (error) {

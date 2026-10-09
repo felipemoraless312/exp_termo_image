@@ -2,18 +2,23 @@
 
 import { useCallback, useEffect, useRef, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { ArrowUpRight, Circle, Eraser, MousePointer2, PaintBucket, Pencil, Pentagon, Redo2, Save, Square, Trash2, Type, Undo2 } from 'lucide-react'
+import {
+  ArrowUpRight, Circle, Crop as CropIcon, Eraser, MousePointer2, PaintBucket, Pencil, Pentagon, Redo2, Save, Square, SquareDashed, Trash2, Type, Undo2,
+} from 'lucide-react'
 
 import { cn } from '@/lib/utils'
 import { saveImageAnnotations } from '../actions'
-import { ANNOTATION_COLORS, type AnnotationMap, type Point, type Shape, type ShapeType } from '../annotations'
-import { AnnotationLayer, ShapeSvg } from './annotation-layer'
+import { ANNOTATION_COLORS, editLabel, type AnnotationMap, type Crop, type Point, type Shape, type ShapeType } from '../annotations'
+import { AnnotatedImage, ShapeSvg } from './annotation-layer'
 
-type Tool = 'seleccionar' | ShapeType
+type Tool = 'seleccionar' | 'recortar' | ShapeType
 type Image = { id: string; name: string }
+/** Lo que se guarda y lo que deshacer/rehacer restauran: marcas y recorte. */
+type Doc = { shapes: Shape[]; crop?: Crop }
 
 const tools: { tool: Tool; label: string; icon: typeof Circle; hint: string }[] = [
   { tool: 'seleccionar', label: 'Seleccionar', icon: MousePointer2, hint: 'Clic en una marca para seleccionarla; arrástrela para moverla; Supr para borrarla.' },
+  { tool: 'recortar', label: 'Recortar', icon: CropIcon, hint: 'Arrastre un rectángulo sobre la parte que quiere conservar. La imagen original no se modifica.' },
   { tool: 'flecha', label: 'Flecha', icon: ArrowUpRight, hint: 'Arrastre desde el inicio hasta la punta de la flecha.' },
   { tool: 'elipse', label: 'Círculo', icon: Circle, hint: 'Arrastre para trazar un círculo o elipse alrededor de la zona.' },
   { tool: 'rectangulo', label: 'Rectángulo', icon: Square, hint: 'Arrastre para enmarcar una región.' },
@@ -23,17 +28,25 @@ const tools: { tool: Tool; label: string; icon: typeof Circle; hint: string }[] 
 ]
 const widths = [{ label: 'Fino', factor: 0.6 }, { label: 'Medio', factor: 1 }, { label: 'Grueso', factor: 1.8 }]
 const newId = () => Math.random().toString(36).slice(2, 10)
+const docOf = (a?: AnnotationMap[string]): Doc => ({ shapes: a?.shapes ?? [], crop: a?.crop })
+const sameDoc = (a: Doc, b: Doc) => JSON.stringify(a.shapes) === JSON.stringify(b.shapes) && JSON.stringify(a.crop ?? null) === JSON.stringify(b.crop ?? null)
 
-/** Editor de anotaciones sobre imágenes térmicas. Dibuja una capa vectorial; la imagen original no se toca. */
+/** Rectángulo normalizado entre dos puntos, dentro de la imagen. */
+function rectFrom([a, b]: [Point, Point], w: number, h: number): Crop {
+  const x = Math.max(0, Math.min(a[0], b[0])), y = Math.max(0, Math.min(a[1], b[1]))
+  return { x: Math.round(x), y: Math.round(y), width: Math.round(Math.min(w, Math.max(a[0], b[0])) - x), height: Math.round(Math.min(h, Math.max(a[1], b[1])) - y) }
+}
+
+/** Editor de anotaciones y recorte de imágenes térmicas. Todo es una capa encima: la imagen original no se toca. */
 export function AnnotationEditor({ patientId, images, annotations, initialFileId, canEdit }: {
   patientId: string; images: Image[]; annotations: AnnotationMap; initialFileId?: string; canEdit: boolean
 }) {
   const router = useRouter()
   const [fileId, setFileId] = useState(images.some((i) => i.id === initialFileId) ? initialFileId! : images[0]?.id)
   const [saved, setSaved] = useState<AnnotationMap>(annotations)
-  const [shapes, setShapes] = useState<Shape[]>(saved[fileId ?? '']?.shapes ?? [])
-  const [past, setPast] = useState<Shape[][]>([])
-  const [future, setFuture] = useState<Shape[][]>([])
+  const [doc, setDoc] = useState<Doc>(docOf(saved[fileId ?? '']))
+  const [past, setPast] = useState<Doc[]>([])
+  const [future, setFuture] = useState<Doc[]>([])
   const [size, setSize] = useState<{ w: number; h: number } | undefined>(() => {
     const a = saved[fileId ?? '']
     return a ? { w: a.imageWidth, h: a.imageHeight } : undefined
@@ -44,6 +57,7 @@ export function AnnotationEditor({ patientId, images, annotations, initialFileId
   const [fill, setFill] = useState(false)
   const [selected, setSelected] = useState<string>()
   const [draft, setDraft] = useState<Shape>()
+  const [cropDraft, setCropDraft] = useState<[Point, Point]>()
   const [polygon, setPolygon] = useState<Point[]>([])
   const [cursor, setCursor] = useState<Point>()
   const [message, setMessage] = useState<{ ok: boolean; text: string }>()
@@ -52,47 +66,48 @@ export function AnnotationEditor({ patientId, images, annotations, initialFileId
   const imgRef = useRef<HTMLImageElement>(null)
   const drag = useRef<{ id: string; start: Point; original: Point[] } | undefined>(undefined)
 
-  const dirty = past.length > 0 || JSON.stringify(shapes) !== JSON.stringify(saved[fileId ?? '']?.shapes ?? [])
+  const { shapes, crop } = doc
+  const dirty = !sameDoc(doc, docOf(saved[fileId ?? '']))
   const base = size ? Math.max(size.w, size.h) / 250 : 2
   const strokeWidth = Math.round(base * widthFactor * 10) / 10
   const current = images.find((i) => i.id === fileId)
 
-  const commit = useCallback((next: Shape[]) => {
-    setPast((p) => [...p, shapes])
+  const commit = useCallback((next: Doc) => {
+    setPast((p) => [...p, doc])
     setFuture([])
-    setShapes(next)
-  }, [shapes])
+    setDoc(next)
+  }, [doc])
 
   const undo = useCallback(() => {
     if (!past.length) return
-    setFuture((f) => [shapes, ...f])
-    setShapes(past[past.length - 1])
+    setFuture((f) => [doc, ...f])
+    setDoc(past[past.length - 1])
     setPast((p) => p.slice(0, -1))
     setSelected(undefined)
-  }, [past, shapes])
+  }, [past, doc])
 
   const redo = useCallback(() => {
     if (!future.length) return
-    setPast((p) => [...p, shapes])
-    setShapes(future[0])
+    setPast((p) => [...p, doc])
+    setDoc(future[0])
     setFuture((f) => f.slice(1))
-  }, [future, shapes])
+  }, [future, doc])
 
   const removeSelected = useCallback(() => {
     if (!selected) return
-    commit(shapes.filter((s) => s.id !== selected))
+    commit({ ...doc, shapes: shapes.filter((s) => s.id !== selected) })
     setSelected(undefined)
-  }, [commit, selected, shapes])
+  }, [commit, doc, selected, shapes])
 
   const closePolygon = useCallback((points: Point[]) => {
-    if (points.length >= 3) commit([...shapes, { id: newId(), type: 'poligono', color, width: strokeWidth, points, fill: true }])
+    if (points.length >= 3) commit({ ...doc, shapes: [...shapes, { id: newId(), type: 'poligono', color, width: strokeWidth, points, fill: true }] })
     setPolygon([])
-  }, [color, commit, shapes, strokeWidth])
+  }, [color, commit, doc, shapes, strokeWidth])
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if ((e.target as HTMLElement)?.closest('input, textarea, select')) return
-      if (e.key === 'Escape') { setPolygon([]); setDraft(undefined); setSelected(undefined) }
+      if (e.key === 'Escape') { setPolygon([]); setDraft(undefined); setCropDraft(undefined); setSelected(undefined) }
       if (!canEdit) return
       if ((e.key === 'Delete' || e.key === 'Backspace') && selected) { e.preventDefault(); removeSelected() }
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); if (e.shiftKey) redo(); else undo() }
@@ -117,12 +132,12 @@ export function AnnotationEditor({ patientId, images, annotations, initialFileId
 
   function choose(id: string) {
     if (id === fileId) return
-    if (dirty && !window.confirm('Hay anotaciones sin guardar en esta imagen. ¿Descartarlas?')) return
+    if (dirty && !window.confirm('Hay cambios sin guardar en esta imagen. ¿Descartarlos?')) return
     const a = saved[id]
     setFileId(id)
-    setShapes(a?.shapes ?? [])
+    setDoc(docOf(a))
     setSize(a ? { w: a.imageWidth, h: a.imageHeight } : undefined)
-    setPast([]); setFuture([]); setSelected(undefined); setDraft(undefined); setPolygon([]); setMessage(undefined)
+    setPast([]); setFuture([]); setSelected(undefined); setDraft(undefined); setCropDraft(undefined); setPolygon([]); setMessage(undefined)
     window.history.replaceState(null, '', `?f=${id}`)
   }
 
@@ -145,6 +160,11 @@ export function AnnotationEditor({ patientId, images, annotations, initialFileId
       return
     }
     setSelected(undefined)
+    if (tool === 'recortar') {
+      setCropDraft([p, p])
+      svgRef.current!.setPointerCapture(e.pointerId)
+      return
+    }
     if (tool === 'poligono') {
       const near = polygon.length >= 3 && Math.hypot(polygon[0][0] - p[0], polygon[0][1] - p[1]) < base * 6
       if (near) closePolygon(polygon)
@@ -153,7 +173,7 @@ export function AnnotationEditor({ patientId, images, annotations, initialFileId
     }
     if (tool === 'texto') {
       const text = window.prompt('Texto de la etiqueta:')?.trim().slice(0, 120)
-      if (text) commit([...shapes, { id: newId(), type: 'texto', color, width: strokeWidth, points: [p], text }])
+      if (text) commit({ ...doc, shapes: [...shapes, { id: newId(), type: 'texto', color, width: strokeWidth, points: [p], text }] })
       return
     }
     setDraft({ id: newId(), type: tool, color, width: strokeWidth, points: tool === 'trazo' ? [p] : [p, p], fill: (tool === 'elipse' || tool === 'rectangulo') && fill })
@@ -164,10 +184,11 @@ export function AnnotationEditor({ patientId, images, annotations, initialFileId
     if (!size) return
     const p = toImage(e)
     if (tool === 'poligono') setCursor(p)
+    if (cropDraft) { setCropDraft([cropDraft[0], p]); return }
     if (drag.current) {
       const { id, start, original } = drag.current
       const dx = p[0] - start[0], dy = p[1] - start[1]
-      setShapes((list) => list.map((s) => (s.id === id ? { ...s, points: original.map(([x, y]) => [x + dx, y + dy] as Point) } : s)))
+      setDoc((d) => ({ ...d, shapes: d.shapes.map((s) => (s.id === id ? { ...s, points: original.map(([x, y]) => [x + dx, y + dy] as Point) } : s)) }))
       return
     }
     if (!draft) return
@@ -178,12 +199,19 @@ export function AnnotationEditor({ patientId, images, annotations, initialFileId
   }
 
   function onPointerUp() {
+    if (cropDraft && size) {
+      const r = rectFrom(cropDraft, size.w, size.h)
+      // Un recorte muy pequeño (un clic) no se aplica.
+      if (r.width > size.w * 0.05 && r.height > size.h * 0.05) commit({ ...doc, crop: r })
+      setCropDraft(undefined)
+      return
+    }
     if (drag.current) {
       const { id, original } = drag.current
       drag.current = undefined
       const moved = shapes.find((s) => s.id === id)
       if (moved && moved.points !== original) {
-        setPast((p) => [...p, shapes.map((s) => (s.id === id ? { ...s, points: original } : s))])
+        setPast((p) => [...p, { ...doc, shapes: shapes.map((s) => (s.id === id ? { ...s, points: original } : s)) }])
         setFuture([])
       }
       return
@@ -191,16 +219,16 @@ export function AnnotationEditor({ patientId, images, annotations, initialFileId
     if (!draft) return
     const [a, b = a] = draft.points
     const big = draft.type === 'trazo' ? draft.points.length > 2 : Math.hypot(b[0] - a[0], b[1] - a[1]) > base * 3
-    if (big) commit([...shapes, draft])
+    if (big) commit({ ...doc, shapes: [...shapes, draft] })
     setDraft(undefined)
   }
 
   function save() {
     if (!fileId || !size) return
     startTransition(async () => {
-      const result = await saveImageAnnotations({ patientId, fileId, imageWidth: size.w, imageHeight: size.h, shapes })
+      const result = await saveImageAnnotations({ patientId, fileId, imageWidth: size.w, imageHeight: size.h, shapes, ...(crop ? { crop } : {}) })
       if (result?.ok) {
-        setSaved((m) => ({ ...m, [fileId]: { imageWidth: size.w, imageHeight: size.h, shapes } }))
+        setSaved((m) => ({ ...m, [fileId]: { imageWidth: size.w, imageHeight: size.h, shapes, ...(crop ? { crop } : {}) } }))
         setPast([]); setFuture([])
         setMessage({ ok: true, text: result.message ?? 'Guardado' })
         router.refresh()
@@ -211,25 +239,27 @@ export function AnnotationEditor({ patientId, images, annotations, initialFileId
   if (!current) return <p className="text-[14px] text-muted-foreground">La paciente no tiene imágenes térmicas.</p>
 
   const hint = tools.find((t) => t.tool === tool)?.hint
+  const shownCrop = cropDraft && size ? rectFrom(cropDraft, size.w, size.h) : crop
   return (
     <div className="grid gap-4 lg:grid-cols-[180px_1fr]">
       <ul className="flex gap-2 overflow-x-auto pb-1 lg:max-h-[78vh] lg:flex-col lg:overflow-y-auto lg:pb-0" aria-label="Imágenes">
-        {images.map((img) => (
-          <li key={img.id} className="shrink-0">
-            <button type="button" onClick={() => choose(img.id)} aria-current={img.id === fileId}
-              className={cn('block w-28 overflow-hidden rounded-lg border-2 text-left lg:w-full', img.id === fileId ? 'border-primary' : 'border-transparent hover:border-border')}>
-              <span className="relative block aspect-[4/3] bg-muted">
-                {/* eslint-disable-next-line @next/next/no-img-element -- archivo protegido por sesión */}
-                <img src={`/sistema/archivos/${img.id}`} alt="" loading="lazy" className="h-full w-full object-cover" />
-                <AnnotationLayer annotation={saved[img.id]} />
-              </span>
-              <span className="flex items-center justify-between gap-1 px-1.5 py-1 text-[11px] text-muted-foreground">
-                <span className="truncate">{img.name}</span>
-                {Boolean(saved[img.id]?.shapes.length) && <span className="shrink-0 rounded bg-primary px-1 text-[10px] font-medium text-primary-foreground">Anotada</span>}
-              </span>
-            </button>
-          </li>
-        ))}
+        {images.map((img) => {
+          const label = editLabel(saved[img.id])
+          return (
+            <li key={img.id} className="shrink-0">
+              <button type="button" onClick={() => choose(img.id)} aria-current={img.id === fileId}
+                className={cn('block w-28 overflow-hidden rounded-lg border-2 text-left lg:w-full', img.id === fileId ? 'border-primary' : 'border-transparent hover:border-border')}>
+                <span className="relative block aspect-[4/3] overflow-hidden bg-muted">
+                  <AnnotatedImage fileId={img.id} alt="" annotation={saved[img.id]} lazy className="h-full w-full object-cover" />
+                </span>
+                <span className="flex items-center justify-between gap-1 px-1.5 py-1 text-[11px] text-muted-foreground">
+                  <span className="truncate">{img.name}</span>
+                  {label && <span className="shrink-0 rounded bg-primary px-1 text-[10px] font-medium text-primary-foreground">{label}</span>}
+                </span>
+              </button>
+            </li>
+          )
+        })}
       </ul>
 
       <div className="min-w-0 space-y-3">
@@ -257,8 +287,10 @@ export function AnnotationEditor({ patientId, images, annotations, initialFileId
             <button type="button" title="Deshacer (Ctrl+Z)" aria-label="Deshacer" onClick={undo} disabled={!past.length} className="flex size-9 items-center justify-center rounded-lg hover:bg-muted disabled:opacity-40"><Undo2 size={16} /></button>
             <button type="button" title="Rehacer (Ctrl+Y)" aria-label="Rehacer" onClick={redo} disabled={!future.length} className="flex size-9 items-center justify-center rounded-lg hover:bg-muted disabled:opacity-40"><Redo2 size={16} /></button>
             <button type="button" title="Borrar la marca seleccionada (Supr)" aria-label="Borrar selección" onClick={removeSelected} disabled={!selected} className="flex size-9 items-center justify-center rounded-lg hover:bg-muted disabled:opacity-40"><Trash2 size={16} /></button>
+            <button type="button" title="Quitar el recorte (volver a la imagen completa)" aria-label="Quitar recorte" disabled={!crop} onClick={() => commit({ ...doc, crop: undefined })}
+              className="flex size-9 items-center justify-center rounded-lg hover:bg-muted disabled:opacity-40"><SquareDashed size={16} /></button>
             <button type="button" title="Quitar todas las marcas" aria-label="Quitar todas las marcas" disabled={!shapes.length}
-              onClick={() => { if (window.confirm('¿Quitar todas las marcas de esta imagen?')) { commit([]); setSelected(undefined) } }}
+              onClick={() => { if (window.confirm('¿Quitar todas las marcas de esta imagen?')) { commit({ ...doc, shapes: [] }); setSelected(undefined) } }}
               className="flex size-9 items-center justify-center rounded-lg hover:bg-muted disabled:opacity-40"><Eraser size={16} /></button>
             <button type="button" onClick={save} disabled={pending || !dirty || !size}
               className="ml-auto flex h-9 items-center gap-1.5 rounded-full bg-primary px-4 text-[13px] font-medium text-primary-foreground disabled:opacity-40">
@@ -268,6 +300,7 @@ export function AnnotationEditor({ patientId, images, annotations, initialFileId
         )}
         <p className="text-[13px] text-muted-foreground">
           {current.name}
+          {crop && <span className="ml-1">· recortada a {crop.width}×{crop.height} px</span>}
           {canEdit ? ` · ${hint}` : ' · Solo lectura'}
           {dirty && <strong className="ml-2 text-warning">Cambios sin guardar</strong>}
           {message && <span role="status" className={cn('ml-2 font-medium', message.ok ? 'text-success' : 'text-danger')}>{message.text}</span>}
@@ -284,6 +317,14 @@ export function AnnotationEditor({ patientId, images, annotations, initialFileId
               onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={onPointerUp}
               onDoubleClick={() => tool === 'poligono' && closePolygon(polygon)} onPointerLeave={() => setCursor(undefined)}>
               {shapes.map((s) => <ShapeSvg key={s.id} shape={s} />)}
+              {shownCrop && (
+                // Recorte: se oscurece lo que queda fuera (sigue visible para poder ajustarlo) y se marca el borde.
+                <g pointerEvents="none" data-crop="">
+                  <path fillRule="evenodd" fill="#000000" fillOpacity={0.6}
+                    d={`M0 0H${size.w}V${size.h}H0Z M${shownCrop.x} ${shownCrop.y}h${shownCrop.width}v${shownCrop.height}h${-shownCrop.width}Z`} />
+                  <rect x={shownCrop.x} y={shownCrop.y} width={shownCrop.width} height={shownCrop.height} fill="none" stroke="#ffffff" strokeWidth={base * 0.8} strokeDasharray={`${base * 3} ${base * 2}`} />
+                </g>
+              )}
               {selected && shapes.filter((s) => s.id === selected).map((s) => <ShapeSvg key={`sel-${s.id}`} shape={s} selected />)}
               {draft && <ShapeSvg shape={draft} />}
               {polygon.length > 0 && (
@@ -296,7 +337,7 @@ export function AnnotationEditor({ patientId, images, annotations, initialFileId
             </svg>
           )}
         </div>
-        <p className="text-[12px] text-subtle">La imagen original no se modifica: las marcas se guardan como una capa encima y se pueden corregir o quitar en cualquier momento. Aparecen en las miniaturas y en el informe impreso.</p>
+        <p className="text-[12px] text-subtle">La imagen original no se modifica: el recorte y las marcas se guardan como una capa encima y se pueden corregir o quitar en cualquier momento. Las miniaturas y el informe impreso muestran la imagen recortada con sus marcas.</p>
       </div>
     </div>
   )

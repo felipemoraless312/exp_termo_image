@@ -201,13 +201,31 @@ class Shape(Camel):
     fill: bool = False
 
 
+class Crop(Camel):
+    """Recorte (en píxeles de la imagen original): solo indica qué parte se muestra; la imagen no se modifica."""
+
+    x: float = Field(ge=0)
+    y: float = Field(ge=0)
+    width: float = Field(ge=1)
+    height: float = Field(ge=1)
+
+
 class AnnotationsIn(Camel):
     """Capa de anotaciones de una imagen. `image_width`/`image_height`: tamaño original, para escalar las marcas."""
 
     image_width: int = Field(ge=1, le=20000)
     image_height: int = Field(ge=1, le=20000)
     shapes: list[Shape] = Field(default_factory=list, max_length=300)
+    crop: Crop | None = None
     recorded: Stamp
+
+    @field_validator("crop")
+    @classmethod
+    def _crop_inside(cls, crop: Crop | None, info: ValidationInfo) -> Crop | None:
+        w, h = info.data.get("image_width"), info.data.get("image_height")
+        if crop and w and h and (crop.x + crop.width > w + 1 or crop.y + crop.height > h + 1):
+            raise ValueError("El recorte sale de la imagen.")
+        return crop
 
 
 class Thermography(ThermographyIn):

@@ -8,8 +8,8 @@ import { Field, Input, Select } from '@/components/ui/field'
 import { formatDateTime } from '@/lib/format'
 import { uploadPatientFiles } from '../actions'
 import { getAnnotations, getPatientFiles } from '../data'
-import type { AnnotationMap } from '../annotations'
-import { AnnotationLayer } from './annotation-layer'
+import { editLabel, type AnnotationMap } from '../annotations'
+import { AnnotatedImage } from './annotation-layer'
 import { ACCEPTED_FILES, fileCategories, formatSize, isImage, MAX_FILE_MB, THERMAL_CATEGORY, type PatientFile } from '../types'
 
 const ACCEPTED_IMAGES = ACCEPTED_FILES.replace('application/pdf,', '')
@@ -48,14 +48,12 @@ export function ImageGrid({ images, annotations = {}, editorHref }: { images: Pa
   return (
     <ul className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
       {images.map((image) => {
-        const marked = Boolean(annotations[image.id]?.shapes.length)
+        const label = editLabel(annotations[image.id])
         return (
           <li key={image.id}>
             <a href={editorHref ? `${editorHref}?f=${image.id}` : `/sistema/archivos/${image.id}`} target={editorHref ? undefined : '_blank'} rel="noreferrer" className="relative block aspect-[4/3] overflow-hidden rounded-xl bg-muted">
-              {/* eslint-disable-next-line @next/next/no-img-element -- archivo protegido por sesión; el optimizador de imágenes no envía la cookie */}
-              <img src={`/sistema/archivos/${image.id}`} alt={image.name} loading="lazy" className="h-full w-full object-cover" />
-              <AnnotationLayer annotation={annotations[image.id]} />
-              {marked && <span className="absolute left-1.5 top-1.5 rounded bg-primary px-1.5 py-0.5 text-[10px] font-medium text-primary-foreground">Anotada</span>}
+              <AnnotatedImage fileId={image.id} alt={image.name} annotation={annotations[image.id]} lazy className="h-full w-full object-cover" />
+              {label && <span className="absolute left-1.5 top-1.5 rounded bg-primary px-1.5 py-0.5 text-[10px] font-medium text-primary-foreground">{label}</span>}
             </a>
             <p className="mt-1 truncate text-[12px] text-muted-foreground">{image.name}</p>
           </li>

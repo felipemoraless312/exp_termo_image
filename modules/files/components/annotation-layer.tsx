@@ -61,3 +61,28 @@ export function AnnotationLayer({ annotation, fit = 'cover' }: { annotation?: An
     </svg>
   )
 }
+
+/**
+ * Imagen con su recorte y sus marcas, llenando la caja como object-cover (miniaturas, informe).
+ * Sin recorte: <img> + capa de marcas. Con recorte: un SVG cuyo viewBox es el recorte (la imagen original no cambia).
+ */
+export function AnnotatedImage({ fileId, alt, annotation, className, lazy = false }: { fileId: string; alt: string; annotation?: Annotation; className?: string; lazy?: boolean }) {
+  const src = `/sistema/archivos/${fileId}`
+  const crop = annotation?.crop
+  if (annotation && crop) {
+    return (
+      <svg viewBox={`${crop.x} ${crop.y} ${crop.width} ${crop.height}`} preserveAspectRatio="xMidYMid slice" className={className}
+        style={{ aspectRatio: `${crop.width} / ${crop.height}` }} role="img" aria-label={alt}>
+        <image href={src} x={0} y={0} width={annotation.imageWidth} height={annotation.imageHeight} preserveAspectRatio="none" />
+        {annotation.shapes.map((s) => <ShapeSvg key={s.id} shape={s} />)}
+      </svg>
+    )
+  }
+  return (
+    <>
+      {/* eslint-disable-next-line @next/next/no-img-element -- archivo protegido por sesión; el optimizador de imágenes no envía la cookie */}
+      <img src={src} alt={alt} loading={lazy ? 'lazy' : undefined} className={className} />
+      <AnnotationLayer annotation={annotation} />
+    </>
+  )
+}

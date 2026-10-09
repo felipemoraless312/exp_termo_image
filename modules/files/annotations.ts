@@ -18,7 +18,10 @@ export interface Shape {
   fill?: boolean
 }
 
-export interface Annotation { imageWidth: number; imageHeight: number; shapes: Shape[]; recorded?: Stamp }
+/** Recorte en píxeles de la imagen original: solo indica qué parte se muestra (la imagen no se modifica). */
+export interface Crop { x: number; y: number; width: number; height: number }
+
+export interface Annotation { imageWidth: number; imageHeight: number; shapes: Shape[]; crop?: Crop; recorded?: Stamp }
 
 export type AnnotationMap = Record<string, Annotation | undefined>
 
@@ -26,3 +29,9 @@ export type AnnotationMap = Record<string, Annotation | undefined>
 export const ANNOTATION_COLORS = ['#00e5ff', '#39ff14', '#ffffff', '#ff2d95', '#000000'] as const
 
 export const hasMarks = (a?: Annotation) => Boolean(a?.shapes.length)
+
+/** Etiqueta para la miniatura: "Anotada", "Recortada" o "Recortada y anotada". */
+export function editLabel(a?: Annotation) {
+  const marks = Boolean(a?.shapes.length), crop = Boolean(a?.crop)
+  return marks && crop ? 'Recortada y anotada' : crop ? 'Recortada' : marks ? 'Anotada' : undefined
+}
