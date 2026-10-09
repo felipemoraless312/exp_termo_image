@@ -7,6 +7,8 @@ import { reject, runAction } from '@/lib/server/form'
 import { audit } from '@/modules/audit/log'
 import { requireStaff } from '@/modules/auth/session'
 import { findPatientById } from '@/modules/patients/repository'
+import { stampFor } from '@/modules/patients/stamp'
+import type { Point, Shape } from './annotations'
 import * as repository from './repository'
 import { fileCategories, MAX_FILE_MB, THERMAL_CATEGORY } from './types'
 
@@ -32,4 +34,31 @@ export async function uploadPatientFiles(_: ActionState, formData: FormData): Pr
     revalidatePath(`/sistema/pacientes/${patient.id}`)
     return { ok: true, message: files.length === 1 ? 'Archivo subido' : `${files.length} archivos subidos` }
   })
+}
+
+const shapeTypes = new Set(['flecha', 'elipse', 'rectangulo', 'poligono', 'trazo', 'texto'])
+
+/** Guarda la capa de anotaciones de una imagen (la imagen original no se modifica). Solo el médico. */
+export async function saveImageAnnotations(input: { patientId: string; fileId: string; imageWidth: number; imageHeight: number; shapes: Shape[] }): Promise<ActionState> {
+  try {
+    const user = await requireStaff('oncology.write')
+    const files = await repository.listPatientFiles(input.patientId)
+    const file = files.find((f) => f.id === input.fileId && f.contentType.startsWith('image/'))
+    if (!file) return { ok: false, error: 'La imagen no pertenece a esta paciente.' }
+    const valid = Array.isArray(input.shapes) && input.shapes.length <= 300 && input.shapes.every((s) =>
+      shapeTypes.has(s.type) && /^#[0-9a-fA-F]{6}$/.test(s.color) && s.width > 0 && Array.isArray(s.points) && s.points.length > 0 && s.points.length <= 4000
+      && s.points.every((p) => Array.isArray(p) && p.length === 2 && p.every(Number.isFinite)) && (s.text === undefined || (typeof s.text === 'string' && s.text.length <= 120)))
+    if (!valid || !(input.imageWidth > 0) || !(input.imageHeight > 0)) return { ok: false, error: 'Las anotaciones no son válidas.' }
+    const shapes = input.shapes.map(({ id, type, color, width, points, text, fill }) => ({
+      id: String(id).slice(0, 40), type, color, width: Math.min(Math.max(width, 0.5), 200),
+      points: points.map(([x, y]) => [Math.round(x * 10) / 10, Math.round(y * 10) / 10] as Point), ...(text ? { text } : {}), ...(fill ? { fill: true } : {}),
+    }))
+    await repository.saveAnnotations(file.id, { imageWidth: Math.round(input.imageWidth), imageHeight: Math.round(input.imageHeight), shapes, recorded: stampFor(user.name) })
+    audit(user, 'modificacion', 'Imagen', input.patientId, `${shapes.length ? `Anotó la imagen ${file.name} (${shapes.length} marca(s))` : `Quitó las anotaciones de la imagen ${file.name}`}`)
+    revalidatePath(`/sistema/pacientes/${input.patientId}`, 'layout')
+    return { ok: true, message: 'Anotaciones guardadas' }
+  } catch (error) {
+    if (error && typeof error === 'object' && 'digest' in error) throw error // redirecciones de requireStaff
+    return { ok: false, error: error instanceof Error ? error.message : 'No se pudieron guardar las anotaciones.' }
+  }
 }

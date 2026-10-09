@@ -186,6 +186,30 @@ class ThermographyReport(Camel):
     recorded: Stamp | None = None
 
 
+ShapeType = Literal["flecha", "elipse", "rectangulo", "poligono", "trazo", "texto"]
+
+
+class Shape(Camel):
+    """Una marca sobre la imagen, en píxeles de la imagen original."""
+
+    id: str = Field(min_length=1, max_length=40)
+    type: ShapeType
+    color: str = Field(pattern=r"^#[0-9a-fA-F]{6}$")
+    width: float = Field(ge=0.5, le=200)
+    points: list[tuple[float, float]] = Field(min_length=1, max_length=4000)
+    text: str | None = Field(default=None, max_length=120)
+    fill: bool = False
+
+
+class AnnotationsIn(Camel):
+    """Capa de anotaciones de una imagen. `image_width`/`image_height`: tamaño original, para escalar las marcas."""
+
+    image_width: int = Field(ge=1, le=20000)
+    image_height: int = Field(ge=1, le=20000)
+    shapes: list[Shape] = Field(default_factory=list, max_length=300)
+    recorded: Stamp
+
+
 class Thermography(ThermographyIn):
     id: str
     folio: str

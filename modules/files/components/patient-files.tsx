@@ -7,7 +7,9 @@ import { EmptyState } from '@/components/ui/empty-state'
 import { Field, Input, Select } from '@/components/ui/field'
 import { formatDateTime } from '@/lib/format'
 import { uploadPatientFiles } from '../actions'
-import { getPatientFiles } from '../data'
+import { getAnnotations, getPatientFiles } from '../data'
+import type { AnnotationMap } from '../annotations'
+import { AnnotationLayer } from './annotation-layer'
 import { ACCEPTED_FILES, fileCategories, formatSize, isImage, MAX_FILE_MB, THERMAL_CATEGORY, type PatientFile } from '../types'
 
 const ACCEPTED_IMAGES = ACCEPTED_FILES.replace('application/pdf,', '')
@@ -38,24 +40,32 @@ export function UploadFilesDialog({ patientId, category }: { patientId: string; 
   )
 }
 
-/** Miniaturas que abren la imagen completa en otra pestaña. */
-export function ImageGrid({ images }: { images: PatientFile[] }) {
+/**
+ * Miniaturas con sus anotaciones. Sin `editorHref` abren la imagen original en otra pestaña;
+ * con `editorHref` abren el editor de anotaciones en esa imagen.
+ */
+export function ImageGrid({ images, annotations = {}, editorHref }: { images: PatientFile[]; annotations?: AnnotationMap; editorHref?: string }) {
   return (
     <ul className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
-      {images.map((image) => (
-        <li key={image.id}>
-          <a href={`/sistema/archivos/${image.id}`} target="_blank" rel="noreferrer" className="block overflow-hidden rounded-xl bg-muted">
-            {/* eslint-disable-next-line @next/next/no-img-element -- archivo protegido por sesión; el optimizador de imágenes no envía la cookie */}
-            <img src={`/sistema/archivos/${image.id}`} alt={image.name} loading="lazy" className="aspect-[4/3] w-full object-cover" />
-          </a>
-          <p className="mt-1 truncate text-[12px] text-muted-foreground">{image.name}</p>
-        </li>
-      ))}
+      {images.map((image) => {
+        const marked = Boolean(annotations[image.id]?.shapes.length)
+        return (
+          <li key={image.id}>
+            <a href={editorHref ? `${editorHref}?f=${image.id}` : `/sistema/archivos/${image.id}`} target={editorHref ? undefined : '_blank'} rel="noreferrer" className="relative block aspect-[4/3] overflow-hidden rounded-xl bg-muted">
+              {/* eslint-disable-next-line @next/next/no-img-element -- archivo protegido por sesión; el optimizador de imágenes no envía la cookie */}
+              <img src={`/sistema/archivos/${image.id}`} alt={image.name} loading="lazy" className="h-full w-full object-cover" />
+              <AnnotationLayer annotation={annotations[image.id]} />
+              {marked && <span className="absolute left-1.5 top-1.5 rounded bg-primary px-1.5 py-0.5 text-[10px] font-medium text-primary-foreground">Anotada</span>}
+            </a>
+            <p className="mt-1 truncate text-[12px] text-muted-foreground">{image.name}</p>
+          </li>
+        )
+      })}
     </ul>
   )
 }
 
-function FileGroup({ title, files }: { title: string; files: PatientFile[] }) {
+function FileGroup({ title, files, annotations }: { title: string; files: PatientFile[]; annotations: AnnotationMap }) {
   const images = files.filter(isImage)
   const documents = files.filter((f) => !isImage(f))
   return (
@@ -74,14 +84,14 @@ function FileGroup({ title, files }: { title: string; files: PatientFile[] }) {
           ))}
         </ul>
       )}
-      {images.length > 0 && <ImageGrid images={images} />}
+      {images.length > 0 && <ImageGrid images={images} annotations={annotations} />}
     </Card>
   )
 }
 
 /** Estudios e imágenes adjuntos al expediente, agrupados por tipo. */
 export async function PatientFilesSection({ patientId, canUpload }: { patientId: string; canUpload: boolean }) {
-  const files = await getPatientFiles(patientId)
+  const [files, annotations] = await Promise.all([getPatientFiles(patientId), getAnnotations(patientId)])
   const groups = new Map<string, PatientFile[]>()
   for (const file of files) {
     const key = file.label ?? 'Otro estudio o documento'
@@ -95,7 +105,7 @@ export async function PatientFilesSection({ patientId, canUpload }: { patientId:
   return (
     <section className="mt-8 space-y-3">
       <CardHeader title="Archivos de estudios e imágenes" description="Resultados de laboratorio, mastografías, imágenes de termografía y otros documentos" action={canUpload && <UploadFilesDialog patientId={patientId} />} className="px-1" />
-      {ordered.length ? ordered.map(([title, list]) => <FileGroup key={title} title={title} files={list} />)
+      {ordered.length ? ordered.map(([title, list]) => <FileGroup key={title} title={title} files={list} annotations={annotations} />)
         : <Card><EmptyState icon={Paperclip} title="Sin archivos" description={canUpload ? 'Use “Subir archivos” para adjuntar resultados en PDF o imágenes.' : undefined} /></Card>}
     </section>
   )

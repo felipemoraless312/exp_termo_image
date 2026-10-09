@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { ClipboardList, FileText, Info, ScanHeart } from 'lucide-react'
+import { ClipboardList, FileText, Info, PenLine, ScanHeart } from 'lucide-react'
 
 import { Badge } from '@/components/ui/badge'
 import { buttonVariants } from '@/components/ui/button'
@@ -20,11 +20,12 @@ import {
 import { answeredCount, psychoSurveyQuestions, type SurveyResponse } from '../psycho-survey'
 import { ImageGrid, UploadFilesDialog } from '@/modules/files/components/patient-files'
 import { THERMAL_CATEGORY, type PatientFile } from '@/modules/files/types'
+import type { AnnotationMap } from '@/modules/files/annotations'
 
 const levelTone = { alto: 'danger', moderado: 'warning', informativo: 'neutral' } as const
 
 /** Apartado de oncología del expediente: riesgo, termografías, exploración clínica, campañas y cuestionario. */
-export function OncologySection({ patient, record, chart, campaigns, surveys, canWrite, thermalImages, canUpload }: {
+export function OncologySection({ patient, record, chart, campaigns, surveys, canWrite, thermalImages, annotations, canUpload }: {
   patient: Patient
   record: ClinicalRecord
   chart: OncologyChart
@@ -33,6 +34,7 @@ export function OncologySection({ patient, record, chart, campaigns, surveys, ca
   canWrite: boolean
   /** Imágenes térmicas subidas como archivos del expediente (aún sin una termografía interpretada). */
   thermalImages: PatientFile[]
+  annotations: AnnotationMap
   canUpload: boolean
 }) {
   const { profile, assessment, thermographies, appointments } = chart
@@ -87,9 +89,16 @@ export function OncologySection({ patient, record, chart, campaigns, surveys, ca
                 className="p-0 sm:p-0"
                 title={`Imágenes térmicas${thermalImages.length ? ` · ${thermalImages.length}` : ''}`}
                 description={thermographies.length ? 'Imágenes adjuntas al expediente' : 'Aún sin interpretación: registre la termografía para generar el informe impreso'}
-                action={canUpload && <UploadFilesDialog patientId={patient.id} category={THERMAL_CATEGORY} />}
+                action={
+                  <div className="flex flex-wrap gap-1">
+                    {thermalImages.length > 0 && (
+                      <Link href={`/sistema/pacientes/${patient.id}/imagenes`} className={buttonVariants({ variant: 'ghost', size: 'sm' })}><PenLine /> {canWrite ? 'Anotar imágenes' : 'Ver imágenes'}</Link>
+                    )}
+                    {canUpload && <UploadFilesDialog patientId={patient.id} category={THERMAL_CATEGORY} />}
+                  </div>
+                }
               />
-              {thermalImages.length ? <ImageGrid images={thermalImages} /> : <p className="mt-3 text-[14px] text-muted-foreground">Sin imágenes térmicas.</p>}
+              {thermalImages.length ? <ImageGrid images={thermalImages} annotations={annotations} editorHref={`/sistema/pacientes/${patient.id}/imagenes`} /> : <p className="mt-3 text-[14px] text-muted-foreground">Sin imágenes térmicas.</p>}
             </Card>
           ) : !thermographies.length && <Card><EmptyState icon={ScanHeart} title="Sin termografías registradas" /></Card>}
 

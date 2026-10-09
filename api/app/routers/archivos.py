@@ -2,13 +2,14 @@
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from typing import Any
 
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 
 from .. import db
-from ..schemas import FileRef
+from ..schemas import AnnotationsIn, FileRef
 from ..settings import ALLOWED_DOCUMENT_TYPES, FILES_DIR, MAX_UPLOAD_BYTES
 from .expedientes import get_patient_or_404
 
@@ -66,3 +67,42 @@ async def upload_patient_files(patient_id: str, files: list[UploadFile] = File(.
             path.unlink(missing_ok=True)
         raise
     return [FileRef(id=f["id"], name=f["name"], content_type=f["content_type"], size=f["size"], label=category.strip(), created_at=stamp).doc() for f in saved]
+
+
+# ── Anotaciones (capa vectorial sobre una imagen; la original no se modifica) ──
+
+
+@router.get("/pacientes/{patient_id}/anotaciones")
+def list_annotations(patient_id: str) -> dict[str, Any]:
+    """Anotaciones vigentes de las imágenes de la paciente, por id de archivo."""
+    with db.reader() as conn:
+        get_patient_or_404(conn, patient_id)
+        rows = conn.execute("SELECT file_id, data FROM annotations WHERE patient_id = ?", (patient_id,)).fetchall()
+    out = {}
+    for r in rows:
+        data = json.loads(r["data"])
+        data.pop("history", None)
+        out[r["file_id"]] = data
+    return out
+
+
+@router.put("/archivos/{file_id}/anotaciones")
+def save_annotations(file_id: str, body: AnnotationsIn) -> dict[str, Any]:
+    """Guarda la capa de anotaciones (sin marcas queda vacía). Las versiones anteriores quedan en `history` (últimas 20)."""
+    with db.transaction() as conn:
+        f = conn.execute("SELECT patient_id, content_type FROM files WHERE id = ?", (file_id,)).fetchone()
+        if not f or not f["content_type"].startswith("image/"):
+            raise HTTPException(404, "La imagen no existe.")
+        row = conn.execute("SELECT data FROM annotations WHERE file_id = ?", (file_id,)).fetchone()
+        previous = json.loads(row["data"]) if row else None
+        history = (previous or {}).pop("history", []) if previous else []
+        if previous:
+            history = [*history, previous][-20:]
+        data = {**body.doc(), "history": history}
+        now = db.now_iso()
+        if row:
+            conn.execute("UPDATE annotations SET data = ?, updated_at = ? WHERE file_id = ?", (db.dumps(data), now, file_id))
+        else:
+            conn.execute("INSERT INTO annotations(file_id, patient_id, data, updated_at) VALUES (?,?,?,?)", (file_id, f["patient_id"], db.dumps(data), now))
+    data.pop("history")
+    return data

@@ -3,6 +3,7 @@ import 'server-only'
 import { REPORT_MAX_IMAGES } from '@/config/report'
 import { requireStaff } from '@/modules/auth/session'
 import * as files from '@/modules/files/repository'
+import type { AnnotationMap } from '@/modules/files/annotations'
 import { THERMAL_CATEGORY, type PatientFile } from '@/modules/files/types'
 import * as patients from '@/modules/patients/repository'
 import type { Patient } from '@/modules/patients/types'
@@ -21,13 +22,15 @@ export interface ThermographyReportView {
   report: ThermographyReport
   saved: boolean
   doctor: { name: string; specialty?: string }
+  /** Anotaciones de las imágenes (se dibujan encima en el informe). */
+  annotations: AnnotationMap
 }
 
 /** Datos del informe impreso de una termografía. Sin configuración guardada, se arma automáticamente. */
 export async function getThermographyReport(patientId: string, thermographyId: string): Promise<ThermographyReportView | undefined> {
   await requireStaff('oncology')
-  const [patient, chart, patientFiles] = await Promise.all([
-    patients.findPatientById(patientId), repository.findOncologyChart(patientId), files.listPatientFiles(patientId),
+  const [patient, chart, patientFiles, annotations] = await Promise.all([
+    patients.findPatientById(patientId), repository.findOncologyChart(patientId), files.listPatientFiles(patientId), files.listAnnotations(patientId),
   ])
   const thermography = chart?.thermographies.find((t) => t.id === thermographyId)
   if (!patient || !chart || !thermography) return undefined
@@ -50,7 +53,7 @@ export async function getThermographyReport(patientId: string, thermographyId: s
     recorded: saved?.recorded,
   }
   const staff = await findStaffByName(thermography.performedBy)
-  return { patient, thermography, candidates, report, saved: Boolean(saved), doctor: { name: staff?.name ?? thermography.performedBy, specialty: staff?.specialty } }
+  return { patient, thermography, candidates, report, saved: Boolean(saved), doctor: { name: staff?.name ?? thermography.performedBy, specialty: staff?.specialty }, annotations }
 }
 
 /** "Mastopatía fibroquística bilateral" + TH3 → "Mastopatía fibroquística bilateral. TH3." (sin repetir la clasificación). */

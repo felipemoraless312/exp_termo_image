@@ -124,6 +124,15 @@ CREATE TABLE IF NOT EXISTS surveys (
 );
 CREATE INDEX IF NOT EXISTS surveys_patient ON surveys(patient_id, created_at);
 CREATE INDEX IF NOT EXISTS surveys_campaign ON surveys(campaign_id, kind);
+
+-- Anotaciones sobre una imagen (capa vectorial): la imagen original nunca se modifica.
+CREATE TABLE IF NOT EXISTS annotations (
+  file_id TEXT PRIMARY KEY REFERENCES files(id),
+  patient_id TEXT NOT NULL REFERENCES patients(id),
+  data TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS annotations_patient ON annotations(patient_id);
 """
 
 

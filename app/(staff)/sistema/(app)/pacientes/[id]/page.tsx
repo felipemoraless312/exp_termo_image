@@ -15,7 +15,7 @@ import { accessScopes } from '@/modules/access/types'
 import { auditActionLabels, auditRoleLabels } from '@/modules/audit/log'
 import { canAccess, type StaffRole } from '@/modules/auth/permissions'
 import { PatientFilesSection } from '@/modules/files/components/patient-files'
-import { getPatientFiles } from '@/modules/files/data'
+import { getAnnotations, getPatientFiles } from '@/modules/files/data'
 import { THERMAL_CATEGORY } from '@/modules/files/types'
 import { requireStaff } from '@/modules/auth/session'
 import { allergyKindLabels, sexLabels } from '@/modules/catalogs/clinical'
@@ -369,10 +369,10 @@ function HistorySection({ patient, record, role }: { patient: Patient; record: C
 }
 
 async function OncologyTab({ patient, record, canWrite, canUpload }: { patient: Patient; record: ClinicalRecord; canWrite: boolean; canUpload: boolean }) {
-  const [chart, campaigns, surveys, files] = await Promise.all([getOncologyChart(patient.id), listCampaigns(), listPatientSurveys(patient.id), getPatientFiles(patient.id)])
+  const [chart, campaigns, surveys, files, annotations] = await Promise.all([getOncologyChart(patient.id), listCampaigns(), listPatientSurveys(patient.id), getPatientFiles(patient.id), getAnnotations(patient.id)])
   if (!chart) return <Card><EmptyState title="No se pudo cargar el apartado de oncología" /></Card>
   const thermalImages = files.filter((f) => f.label === THERMAL_CATEGORY && f.contentType.startsWith('image/'))
-  return <OncologySection patient={patient} record={record} chart={chart} campaigns={campaigns} surveys={surveys} canWrite={canWrite} thermalImages={thermalImages} canUpload={canUpload} />
+  return <OncologySection patient={patient} record={record} chart={chart} campaigns={campaigns} surveys={surveys} canWrite={canWrite} thermalImages={thermalImages} annotations={annotations} canUpload={canUpload} />
 }
 
 async function AccessSection({ patientId }: { patientId: string }) {
