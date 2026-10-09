@@ -49,6 +49,7 @@ export function AnnotationEditor({ patientId, images, annotations, initialFileId
   const [message, setMessage] = useState<{ ok: boolean; text: string }>()
   const [pending, startTransition] = useTransition()
   const svgRef = useRef<SVGSVGElement>(null)
+  const imgRef = useRef<HTMLImageElement>(null)
   const drag = useRef<{ id: string; start: Point; original: Point[] } | undefined>(undefined)
 
   const dirty = past.length > 0 || JSON.stringify(shapes) !== JSON.stringify(saved[fileId ?? '']?.shapes ?? [])
@@ -100,6 +101,12 @@ export function AnnotationEditor({ patientId, images, annotations, initialFileId
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [canEdit, redo, removeSelected, selected, undo])
+
+  // La imagen puede terminar de cargar antes de que React conecte onLoad (viene en el HTML del servidor).
+  useEffect(() => {
+    const img = imgRef.current
+    if (img?.complete && img.naturalWidth) setSize({ w: img.naturalWidth, h: img.naturalHeight })
+  }, [fileId])
 
   useEffect(() => {
     if (!dirty) return
@@ -269,7 +276,7 @@ export function AnnotationEditor({ patientId, images, annotations, initialFileId
         <div className="relative mx-auto select-none overflow-hidden rounded-xl bg-black"
           style={{ aspectRatio: size ? `${size.w} / ${size.h}` : '4 / 3', width: size ? `min(100%, calc(78vh * ${size.w / size.h}))` : '100%' }}>
           {/* eslint-disable-next-line @next/next/no-img-element -- archivo protegido por sesión; se necesita el tamaño original */}
-          <img key={current.id} src={`/sistema/archivos/${current.id}`} alt={current.name} draggable={false} className="absolute inset-0 h-full w-full object-contain"
+          <img ref={imgRef} key={current.id} src={`/sistema/archivos/${current.id}`} alt={current.name} draggable={false} className="absolute inset-0 h-full w-full object-contain"
             onLoad={(e) => setSize({ w: e.currentTarget.naturalWidth, h: e.currentTarget.naturalHeight })} />
           {size && (
             <svg ref={svgRef} viewBox={`0 0 ${size.w} ${size.h}`} preserveAspectRatio="xMidYMid meet"
